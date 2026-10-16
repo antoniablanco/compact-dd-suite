@@ -1,5 +1,4 @@
 #include "IndependentSetProblem.h"
-#include <numeric>
 
 IndependentSetProblem::IndependentSetProblem(const IndependentSetInstance& params, bool sort)
         : AbstractProblem(params.initial_state, params.variables)
@@ -7,21 +6,15 @@ IndependentSetProblem::IndependentSetProblem(const IndependentSetInstance& param
     _dict_node_neighbors = params.dict_node_neighbors;
     check_atributes(params.variables, params.dict_node_neighbors);
 
-    // Identity default (overwritten by sort_variables when sort=true)
-    dd_to_original_index.resize(params.variables.size());
-    iota(dd_to_original_index.begin(), dd_to_original_index.end(), 0);
-
-    if (sort) {
-        apply_variable_order(sort_variables(params.variables));
-    }
+    initialize_variable_order(params.variables, sort);
 
     int n = static_cast<int>(params.dict_node_neighbors.size());
     node_neighbors.resize(n);
     for (const auto& [key, neighbors] : params.dict_node_neighbors) {
-        int var_index = this->name_to_index.at(key);
+        int var_index = this->name_to_index().at(key);
         node_neighbors[var_index] = dynamic_bitset<>(n);
         for (int neighbor_num : neighbors) {
-            int neighbor_index = this->name_to_index.at("x_" + to_string(neighbor_num));
+            int neighbor_index = this->name_to_index().at("x_" + to_string(neighbor_num));
             node_neighbors[var_index].set(neighbor_index);
         }
     }
@@ -36,14 +29,6 @@ vector<string> IndependentSetProblem::sort_variables(const vector<pair<string, v
         [this](const string& a, const string& b) {
             return _dict_node_neighbors.at(a).size() > _dict_node_neighbors.at(b).size();
         });
-
-    map<string, int> name_to_orig;
-    for (int i = 0; i < (int)variables.size(); ++i)
-        name_to_orig[variables[i].first] = i;
-    dd_to_original_index.clear();
-    for (const string& name : sorted_names)
-        dd_to_original_index.push_back(name_to_orig.at(name));
-
     return sorted_names;
 }
 

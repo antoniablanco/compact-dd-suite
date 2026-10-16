@@ -47,7 +47,7 @@ protected:
 
 TEST_F(SequencingProblemTest, TestOrderedVariables) {
     vector<string> expected = {"slot_0", "slot_1", "slot_2"};
-    ASSERT_EQ(problem_instance->ordered_variables, expected);
+    ASSERT_EQ(problem_instance->ordered_variables(), expected);
 }
 
 TEST_F(SequencingProblemTest, TestVariablesDomain) {

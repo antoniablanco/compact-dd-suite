@@ -212,10 +212,11 @@ void AbstractProblemGurobi::add_constraints() {
 
 pair<vector<double>, vector<int>> AbstractProblemGurobi::get_variable_values(
     const vector<double>& x_sol,
-    const vector<int>& /*dd_to_original_index*/) const
+    const vector<int>& dd_to_original_index) const
 {
-    // Default: identity mapping — DD variables align 1-to-1 with model x variables
-    vector<int> var_ids(x_sol.size());
-    iota(var_ids.begin(), var_ids.end(), 0);
-    return {x_sol, var_ids};
+    vector<double> x_sol_dd;
+    x_sol_dd.reserve(dd_to_original_index.size());
+    for (int var_id : dd_to_original_index)
+        x_sol_dd.push_back(x_sol[var_id]);
+    return {x_sol_dd, dd_to_original_index};
 }

@@ -2,7 +2,9 @@
 #define TEMPLATETYPE_REDUCEDDBUILDER_H
 
 #include "Graph.h"
+#include <algorithm>
 #include <string>
+#include <utility>
 #include <vector>
 
 using namespace std;
@@ -46,6 +48,11 @@ private:
     vector<Node<T>*> merged_nodes;
 
     /**
+     * @brief Scratch buffer with the (child id, value) pairs of a node, reused between nodes.
+     */
+    vector<pair<int, int>> out_arc_keys;
+
+    /**
      * @brief Reviews the current layer to merge nodes that reach the same node afterward
         with the same variable value.
      * @param layer Vector of nodes in the current layer.
@@ -54,9 +61,9 @@ private:
     bool review_layer_to_merge_nodes(list<Node<T>*>& layer);
 
     /**
-     * @brief Gets the nodes of the path_print of a node.
-     * @param node Node to get the path_print from.
-     * @return Vector of strings with the nodes of the path_print.
+     * @brief Builds the merge key of a node from its outgoing arcs, independent of their order.
+     * @param node Node to get the key from.
+     * @param paths_of_node Output: the sorted (child id, value) pairs serialized as a string.
      */
     void get_node_of_every_type_of_path(Node<T>* node, string& paths_of_node);
 

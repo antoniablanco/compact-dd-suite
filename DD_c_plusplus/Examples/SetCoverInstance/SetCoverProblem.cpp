@@ -10,12 +10,9 @@ SetCoverProblem::SetCoverProblem(const SetCoverInstance& params, bool sort)
 {
     _raw_matrix = params.matrix_of_weight;
 
-    // Identity default (overwritten by sort_variables when sort=true)
-    dd_to_original_index.resize(params.variables.size());
-    iota(dd_to_original_index.begin(), dd_to_original_index.end(), 0);
-
-    if (sort) {
-        apply_variable_order(sort_variables(params.variables));
+    initialize_variable_order(params.variables, sort);
+    for (auto& row : _raw_matrix) {
+        row = reorder_to_dd_order(row);
     }
 
     dynamic_bitset<>* bs = convert_to_bitset(params.right_side_of_restrictions, _raw_matrix.size());
@@ -46,13 +43,6 @@ vector<string> SetCoverProblem::sort_variables(const vector<pair<string, vector<
     iota(sort_indices.begin(), sort_indices.end(), 0);
     stable_sort(sort_indices.begin(), sort_indices.end(),
         [&coverage](int a, int b) { return coverage[a] > coverage[b]; });
-    dd_to_original_index = sort_indices;
-
-    vector<vector<int>> new_matrix(n_rows, vector<int>(n_vars));
-    for (int i = 0; i < n_rows; ++i)
-        for (int new_j = 0; new_j < n_vars; ++new_j)
-            new_matrix[i][new_j] = _raw_matrix[i][sort_indices[new_j]];
-    _raw_matrix = new_matrix;
 
     vector<string> sorted_names;
     sorted_names.reserve(n_vars);

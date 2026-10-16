@@ -86,9 +86,9 @@ void write_statistics(const string& file_path, const string& statistics, const s
 
 template <typename T, typename Solver>
 void create_and_solve_dd(AbstractProblem<T>* problem_instance, const vector<double>& objective_weights, GuiStructure gui_structure) {
-    vector<double> sorted_obj(problem_instance->dd_to_original_index.size());
-    for (int i = 0; i < (int)problem_instance->dd_to_original_index.size(); ++i)
-        sorted_obj[i] = objective_weights[problem_instance->dd_to_original_index[i]];
+    vector<double> sorted_obj(problem_instance->dd_to_original_index().size());
+    for (int i = 0; i < (int)problem_instance->dd_to_original_index().size(); ++i)
+        sorted_obj[i] = objective_weights[problem_instance->dd_to_original_index()[i]];
 
     DD<T> dd_instance(*problem_instance);
     string headers = "File_name,Problem type,Variables number,DD Type,Max Width,Is Reduced,Objective Type,Optimization Value,Construction Time,Reduce Time,Solution Time,Number Node,Number Arcs,Actual Max Width,Sort";
@@ -122,7 +122,7 @@ void create_and_solve_dd(AbstractProblem<T>* problem_instance, const vector<doub
     string statistics =
             fs::path(gui_structure.input_file_path).filename().string() + "," +
             to_string(gui_structure.problem_class) + "," +
-            to_string(problem_instance->ordered_variables.size()) + "," +
+            to_string(problem_instance->ordered_variables().size()) + "," +
             to_string(gui_structure.dd_type) + "," +
             to_string(gui_structure.maximum_width) + "," +
             (gui_structure.reduce_flag ? "true" : "false") + "," +
@@ -241,7 +241,7 @@ void gurobi_dd_cutting_planes(GuiCutsStructure gui_cuts_structure, GurobiClass& 
     string statistics =
             fs::path(gui_cuts_structure.input_file_path).filename().string() + "," +
             to_string(gui_cuts_structure.problem_class) + "," +
-            to_string(problem_instance->ordered_variables.size()) + "," +
+            to_string(problem_instance->ordered_variables().size()) + "," +
             to_string(gui_cuts_structure.dd_type) + "," +
             to_string(gui_cuts_structure.maximum_width) + "," +
             to_string(cut_type) + "," +

@@ -20,11 +20,10 @@ class SetCoverProblem(AbstractProblem):
 
         self.right_side_of_restrictions = self.convert_to_bitset(params.right_side_of_restrictions, len(params.matrix_of_weight))
 
-        if not sort:
-            self.matrix_of_weight = [
-                self.convert_to_bitset(row, len(params.matrix_of_weight[0]))
-                for row in params.matrix_of_weight
-            ]
+        self.matrix_of_weight = [
+            self.convert_to_bitset(self.reorder_to_dd_order(row), len(row))
+            for row in params.matrix_of_weight
+        ]
         self.matrix_of_weight_transpose = []
 
         self.check_atributes(params.variables, params.initial_state)
@@ -37,16 +36,8 @@ class SetCoverProblem(AbstractProblem):
             sum(self._raw_matrix[row][i] for row in range(n_restrictions))
             for i in range(len(variables))
         ]
-        self.dd_to_original_index = sorted(range(len(variables)), key=lambda i: -coverage[i])
-
-        sorted_matrix = [[row[i] for i in self.dd_to_original_index] for row in self._raw_matrix]
-
-        self.matrix_of_weight = [
-            self.convert_to_bitset(row, len(sorted_matrix[0]))
-            for row in sorted_matrix
-        ]
-    
-        return [variables[i][0] for i in self.dd_to_original_index]
+        sorted_positions = sorted(range(len(variables)), key=lambda i: -coverage[i])
+        return [variables[i][0] for i in sorted_positions]
 
     def check_atributes(self, variables: list[tuple['Variable', 'Domain']], initial_state: 'State') -> None:
         '''

@@ -58,7 +58,7 @@ protected:
 
 TEST_F(SetCoverProblemTestSort, TestOrderedVariables) {
     vector<string> ordered_variables_test = {"conjunto_A", "conjunto_B", "conjunto_D", "conjunto_C", "conjunto_E", "conjunto_F"};
-    ASSERT_EQ(problem_instance->ordered_variables, ordered_variables_test);
+    ASSERT_EQ(problem_instance->ordered_variables(), ordered_variables_test);
 }
 
 TEST_F(SetCoverProblemTestSort, TestVariablesDomain) {

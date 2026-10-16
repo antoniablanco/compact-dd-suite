@@ -254,13 +254,9 @@ class AbstractProblemGurobi(ABC):
 
     def _get_variable_values(self, x_sol: list, dd) -> tuple[list, list]:
         '''
-        Map x_sol values to the variables of a given DD.
-
-        Default implementation assumes the DD covers all model variables in order
-        (valid for problems with a single complete DD: Knapsack, IndependentSet, SetCover).
-
-        Override this method in subclasses where the DD covers only a subset of variables
-        or uses a different ordering (e.g. SOCKnapsack with auxiliary variables).
+        Map x_sol values to the variables of a given DD, following the DD order through
+        dd.problem.dd_to_original_index (covers sorted problems and DDs over a subset of the
+        model variables, e.g. SOCKnapsack).
 
         Parameters:
         - x_sol: Current LP relaxation values for self.x.
@@ -269,7 +265,9 @@ class AbstractProblemGurobi(ABC):
         Returns:
         - (x_sol_dd, var_ids): values and indices aligned with the DD's variables.
         '''
-        return x_sol, list(range(self.variable_length))
+        var_ids: list[int] = dd.problem.dd_to_original_index
+        x_sol_dd: list = [x_sol[var_id] for var_id in var_ids]
+        return x_sol_dd, var_ids
 
     @abstractmethod
     def show_results(self) -> str:

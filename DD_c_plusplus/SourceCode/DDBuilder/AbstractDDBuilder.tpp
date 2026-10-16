@@ -5,7 +5,7 @@ template <typename T>
 AbstractDDBuilder<T>::AbstractDDBuilder(AbstractProblem<T>& problem) :
         problem(problem),
         node_number(1),
-        variables(problem.ordered_variables),
+        variables(problem.ordered_variables()),
         graph(),
         scratch_state(problem.get_state_copy(problem.initial_state))
 {
@@ -63,7 +63,7 @@ void AbstractDDBuilder<T>::create_new_nodes_in_the_new_layer(int variable_id) {
     map_of_states.reserve(graph->structure[last_layer_index].size() * variables_domain[variable_id].size());
 
     const string& variable_name = variables[variable_id];
-    int variable_index = problem.name_to_index.at(variable_name);
+    int variable_index = problem.name_to_index().at(variable_name);
     is_last_layer = (size_t)variable_id == variables.size() - 1;
 
     for (auto* parent_node : graph->structure[last_layer_index]) {

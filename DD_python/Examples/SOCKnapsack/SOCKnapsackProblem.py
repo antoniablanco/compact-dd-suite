@@ -38,19 +38,10 @@ class SOCKnapsackProblem(AbstractProblem):
         self._pruned_sqrt_weights: list[int] = []
         self._prune(params.variables, linear_weights, sqrt_weights)
 
-        # Defaults for sort=False (overwritten by sort_variables when sort=True)
-        self._sorted_linear_weights = self._pruned_linear_weights[:]
-        self._sorted_sqrt_weights = self._pruned_sqrt_weights[:]
-
         super().__init__(initial_state, self._pruned_variables, sort)
 
-        # AbstractProblem initializes dd_to_original_index as identity over pruned variables,
-        # but SOCKnapsack needs indices into the full original variable list.
-        if not sort:
-            self.dd_to_original_index = [self.original_name_to_index[name] for name, _ in self._pruned_variables]
-
-        self.linear_weights = self._sorted_linear_weights
-        self.sqrt_weights = self._sorted_sqrt_weights
+        self.linear_weights = self.reorder_to_dd_order(self._pruned_linear_weights)
+        self.sqrt_weights = self.reorder_to_dd_order(self._pruned_sqrt_weights)
         self.sqrt_weights_2 = [x ** 2 for x in self.sqrt_weights]
 
         self.min_linear_weight = []
@@ -68,22 +59,21 @@ class SOCKnapsackProblem(AbstractProblem):
 
     def sort_variables(self, variables: list[tuple['Variable', 'Domain']]) -> list[str]:
         '''
-        Sort variables by decreasing ordering weight (linear + omega * sqrt) and build
-        self.dd_to_original_index so callers can map DD position → original Gurobi index.
+        Sort variables by decreasing ordering weight (linear + omega * sqrt).
         '''
         paired = sorted(
             zip(variables, self._pruned_linear_weights, self._pruned_sqrt_weights),
             key=lambda x: x[1] + self.omega * x[2],
             reverse=True
         )
-
-        self.dd_to_original_index: list[int] = [
-            self.original_name_to_index[name] for name, _ in (item[0] for item in paired)
-        ]
-        self._sorted_linear_weights = [item[1] for item in paired]
-        self._sorted_sqrt_weights = [item[2] for item in paired]
-
         return [name for (name, _), _, _ in paired]
+
+    def get_original_index(self, variable_name: str, variable_position: int) -> int:
+        '''
+        Index in the full (unpruned) variable list, so dd_to_original_index maps each DD position
+        to the Gurobi model's variable.
+        '''
+        return self.original_name_to_index[variable_name]
 
     def _prune(self, variables: list[tuple['Variable', 'Domain']],
                                      linear_weights: list[int], sqrt_weights: list[int]) -> None:

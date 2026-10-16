@@ -40,17 +40,9 @@ SOCKnapsackProblem::SOCKnapsackProblem(vector<double>* initial_state,
       omega(omega),
       capacity(capacity)
 {
-    if (sort) {
-        apply_variable_order(sort_variables(original_variable_names_domains));
-    } else {
-        linear_weights = _pruned_linear_weights;
-        sqrt_weights   = _pruned_sqrt_weights;
-        // AbstractProblem initializes dd_to_original_index as identity over pruned variables,
-        // but we need indices into the full original variable list.
-        dd_to_original_index.clear();
-        for (const auto& [name, _d] : original_variable_names_domains)
-            dd_to_original_index.push_back(original_name_to_index.at(name));
-    }
+    initialize_variable_order(original_variable_names_domains, sort);
+    linear_weights = reorder_to_dd_order(_pruned_linear_weights);
+    sqrt_weights   = reorder_to_dd_order(_pruned_sqrt_weights);
 
     sqrt_weights_2.resize(sqrt_weights.size());
     for (int i = 0; i < (int)sqrt_weights.size(); ++i)
@@ -58,9 +50,9 @@ SOCKnapsackProblem::SOCKnapsackProblem(vector<double>* initial_state,
 
     _compute_min_and_sum_for_pruning();
 
-    assert(linear_weights.size() == ordered_variables.size() &&
+    assert(linear_weights.size() == ordered_variables().size() &&
            "linear_weights and variables must have the same length");
-    assert(sqrt_weights.size() == ordered_variables.size() &&
+    assert(sqrt_weights.size() == ordered_variables().size() &&
            "sqrt_weights and variables must have the same length");
 }
 
@@ -100,29 +92,15 @@ vector<string> SOCKnapsackProblem::sort_variables(const vector<pair<string, vect
         return (a.linear_w + omega * a.sqrt_w) > (b.linear_w + omega * b.sqrt_w);
     });
 
-    dd_to_original_index.clear();
-    dd_to_original_index.reserve(entries.size());
-    for (const auto& e : entries)
-        dd_to_original_index.push_back(original_name_to_index.at(e.variable.first));
-
-    linear_weights.clear();
-    sqrt_weights.clear();
-    linear_weights.reserve(entries.size());
-    sqrt_weights.reserve(entries.size());
-    vector<pair<string, vector<int>>> sorted_domains;
-    sorted_domains.reserve(entries.size());
-    for (const auto& e : entries) {
-        linear_weights.push_back(e.linear_w);
-        sqrt_weights.push_back(e.sqrt_w);
-        sorted_domains.push_back(e.variable);
-    }
-    original_variable_names_domains = move(sorted_domains);
-
     vector<string> names;
     names.reserve(entries.size());
     for (const auto& e : entries)
         names.push_back(e.variable.first);
     return names;
+}
+
+int SOCKnapsackProblem::get_original_index(const string& variable_name, int /*variable_position*/) const {
+    return original_name_to_index.at(variable_name);
 }
 
 // ============================================================

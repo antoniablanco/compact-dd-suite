@@ -38,14 +38,11 @@ class IndependentSetProblem(AbstractProblem):
 
 
     def sort_variables(self, variables: list[tuple['Variable', 'Domain']]) -> list[str]:
-        sorted_names = sorted(
+        return sorted(
             [name for name, _ in variables],
             key=lambda name: len(self._dict_node_neighbors[name]),
             reverse=True
         )
-        name_to_original_index = {name: i for i, (name, _) in enumerate(variables)}
-        self.dd_to_original_index = [name_to_original_index[name] for name in sorted_names]
-        return sorted_names
 
     def check_atributes(self, variables: list[tuple['Variable', 'Domain']], dict_node_neighbors: dict[str, list[int]]) -> None:
         ''' 

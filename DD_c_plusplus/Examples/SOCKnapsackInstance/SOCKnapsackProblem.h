@@ -67,12 +67,15 @@ public:
     // ---- AbstractProblem interface ----
 
     /**
-     * @brief Sort pruned variables by decreasing (linear + omega*sqrt) weight,
-     *        rename them lexicographically (x_1, x_2, ...), and build
-     *        dd_to_original_index. Also reorders linear_weights, sqrt_weights,
-     *        and original_variable_names_domains to match the new order.
+     * @brief Sort pruned variables by decreasing (linear + omega*sqrt) weight.
      */
     vector<string> sort_variables(const vector<pair<string, vector<int>>>& variables) override;
+
+    /**
+     * @brief Index in the full (unpruned) variable list, so dd_to_original_index() maps each
+     *        DD position to the Gurobi model's variable.
+     */
+    int get_original_index(const string& variable_name, int variable_position) const override;
 
     bool transition_function(const vector<double>* previous_state,
                              int variable_index,
@@ -94,7 +97,7 @@ private:
     int omega;
     int capacity;
 
-    // ---- Intermediate pruned weights (used by sort_variables) ----
+    // ---- Pruned weights in original variable order (reordered into linear_weights / sqrt_weights) ----
     vector<int> _pruned_linear_weights; /**< Pruned linear weights in original variable order. */
     vector<int> _pruned_sqrt_weights;   /**< Pruned sqrt weights in original variable order. */
 

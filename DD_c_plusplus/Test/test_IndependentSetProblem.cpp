@@ -59,7 +59,7 @@ protected:
 
 TEST_F(IndependentSetProblemTest, TestOrderedVariables) {
     vector<string> ordered_variables_test = {"x_1", "x_2", "x_3", "x_4", "x_5"};
-    ASSERT_EQ(problem_instance->ordered_variables, ordered_variables_test);
+    ASSERT_EQ(problem_instance->ordered_variables(), ordered_variables_test);
 }
 
 TEST_F(IndependentSetProblemTest, TestVariablesDomain) {

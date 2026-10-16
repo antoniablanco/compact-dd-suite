@@ -93,7 +93,6 @@ public:
 
     /**
      * @brief Returns variable names sorted descending by coverage count (column sums).
-     * Also reorders _raw_matrix to match the returned order.
      */
     vector<string> sort_variables(const vector<pair<string, vector<int>>>& variables) override;
 

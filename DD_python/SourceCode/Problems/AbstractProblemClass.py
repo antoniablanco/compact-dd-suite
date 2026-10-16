@@ -18,24 +18,117 @@ class AbstractProblem(ABC):
         string, etc., depending on what is required for the problem.
         - variables (list[tuple['Variable', 'Domain']]): A list of tuples containing the
         variables of the problem and their domain.
+        - sort (bool): Whether to order the variables with sort_variables. The ordering is fixed
+        here, before any construction, and cannot be changed afterwards.
         '''
         self.initial_state: 'State' = initial_state
         self.variables_domain: dict[str, list[int]] = dict(variables)
-        self.dd_to_original_index: list[int] = list(range(len(variables)))
-        self.ordered_variables: list[str] = (
-            self.sort_variables(variables) if sort else [name for name, _ in variables]
-        )
+
+        variable_names: list[str] = [name for name, _ in variables]
+        ordered_variables: list[str] = list(self.sort_variables(variables)) if sort else variable_names
+        self._check_ordering(ordered_variables, variable_names)
+
+        position_of: dict[str, int] = {name: i for i, name in enumerate(variable_names)}
+        self._ordered_variables: list[str] = ordered_variables
+        self._dd_to_position: list[int] = [position_of[name] for name in ordered_variables]
+        self._dd_to_original_index: list[int] = [
+            self.get_original_index(name, position_of[name]) for name in ordered_variables
+        ]
 
         # Bidirectional mapping between variable names and their position index (0-based).
         # Use these instead of parsing names (e.g. int("x_3"[2:]) - 1) anywhere in the code.
-        self.name_to_index: dict[str, int] = {name: i for i, name in enumerate(self.ordered_variables)}
-        self.index_to_name: dict[int, str] = {i: name for i, name in enumerate(self.ordered_variables)}
+        self._name_to_index: dict[str, int] = {name: i for i, name in enumerate(ordered_variables)}
+        self._index_to_name: dict[int, str] = {i: name for i, name in enumerate(ordered_variables)}
+
+    @property
+    def ordered_variables(self) -> list[str]:
+        '''
+        Variable names in the order of the DD layers. Fixed at construction.
+
+        Returns:
+        - list[str]: The ordered variable names.
+        '''
+        return self._ordered_variables
+
+    @property
+    def name_to_index(self) -> dict[str, int]:
+        '''
+        Maps each variable name to its position in the DD (0-based). This position is the
+        variable_id received by the transition functions. Fixed at construction.
+
+        Returns:
+        - dict[str, int]: Variable name to DD position.
+        '''
+        return self._name_to_index
+
+    @property
+    def index_to_name(self) -> dict[int, str]:
+        '''
+        Maps each DD position (0-based) to its variable name. Fixed at construction.
+
+        Returns:
+        - dict[int, str]: DD position to variable name.
+        '''
+        return self._index_to_name
+
+    @property
+    def dd_to_original_index(self) -> list[int]:
+        '''
+        Maps each DD position to the index of the variable in the original model (e.g. the
+        Gurobi model or the objective weights read from the instance). Fixed at construction.
+
+        Returns:
+        - list[int]: Original index of the variable in each DD position.
+        '''
+        return self._dd_to_original_index
+
+    def _check_ordering(self, ordered_variables: list[str], variable_names: list[str]) -> None:
+        '''
+        Checks that the ordering is a permutation of the variable names.
+
+        Parameters:
+        - ordered_variables (list[str]): Ordering returned by sort_variables.
+        - variable_names (list[str]): Variable names in the order given to the constructor.
+        '''
+        if len(ordered_variables) != len(variable_names) or set(ordered_variables) != set(variable_names):
+            raise ValueError("sort_variables must return a permutation of the variable names")
+
+    def get_original_index(self, variable_name: str, variable_position: int) -> int:
+        '''
+        Defines the index of a variable in the original model, used to build dd_to_original_index.
+        Defaults to its position in the variables given to the constructor; override it when the
+        problem drops variables before calling the constructor (e.g. SOCKnapsack).
+
+        Parameters:
+        - variable_name (str): Name of the variable.
+        - variable_position (int): Position of the variable in the variables given to the constructor.
+
+        Returns:
+        - int: Index of the variable in the original model.
+        '''
+        return variable_position
+
+    def reorder_to_dd_order(self, values: list) -> list:
+        '''
+        Reorders a list aligned with the variables given to the constructor into the DD order,
+        so that the result can be indexed with the variable_id received by the transition functions.
+        Every problem with per-variable data must store it in DD order.
+
+        Parameters:
+        - values (list): One value per variable, in the order given to the constructor.
+
+        Returns:
+        - list: The same values, one per DD position.
+        '''
+        return [values[position] for position in self._dd_to_position]
 
     def sort_variables(self, variables: list[tuple['Variable', 'Domain']], **kwargs) -> list[str]:
         '''
-        Override to define a custom variable ordering. Called during __init__ and must return
-        the ordered variable names ready to assign to self.ordered_variables.
-        Subclasses may use self attributes or **kwargs to compute the ordering.
+        Override to define a custom variable ordering. Called once during __init__, before any
+        construction, and must return a permutation of the variable names. It must not have side
+        effects: the mappings (name_to_index, dd_to_original_index, ...) are derived from the returned
+        ordering, and per-variable data must be reordered after __init__ with reorder_to_dd_order.
+        Subclasses may use self attributes set before calling super().__init__ or **kwargs.
 
         Parameters:
         - variables (list[tuple['Variable', 'Domain']]): The original variable list.
