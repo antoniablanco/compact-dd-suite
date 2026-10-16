@@ -103,16 +103,27 @@ def write_statistics(file_path, statistics, headers) -> None:
         print(f"Error: could not open file {file_path}")
         exit(1)
 
+def connect_layer_statistic(dd_instance: 'DD') -> str:
+    '''
+    Connection layer of the DD for the statistics files, 'na' if it is not a semi decision diagram.
+    '''
+    connect_layer: int = dd_instance.get_connect_layer()
+    return 'na' if connect_layer is None else str(connect_layer)
+
 def create_and_solve_dd(problem_instance: 'AbstractProblem', objective_weights: list[int], gui_structure: GuiStructure, solver_class=None) -> None:
     '''
     Create and solve a decision diagram for a given problem instance.
     '''
     sorted_obj = [objective_weights[i] for i in problem_instance.dd_to_original_index]
     dd_instance: DD = DD(problem_instance)
-    headers: str = "File_name,Problem type,Variables number,DD Type,Max Width,Is Reduced,Objective Type,Optimization Value,Construction Time,Reduce Time,Solution Time,Number Node,Number Arcs,Actual Max Width,Sort"
+    headers: str = "File_name,Problem type,Variables number,DD Type,Max Width,Is Reduced,Objective Type,Optimization Value,Construction Time,Reduce Time,Solution Time,Number Node,Number Arcs,Actual Max Width,Sort,Semi,Connect Layer"
 
-    construction_time:float = 0.0
-    if gui_structure.dd_type == DDType.EXACT:
+    if gui_structure.semi_flag:
+        if gui_structure.connect_layer is not None:
+            problem_instance.connect_layer = gui_structure.connect_layer
+        dd_instance.create_semi_decision_diagram(gui_structure.verbose)
+
+    elif gui_structure.dd_type == DDType.EXACT:
         dd_instance.create_decision_diagram(gui_structure.verbose)
     
     elif gui_structure.dd_type == DDType.RESTRICTED:
@@ -151,7 +162,9 @@ def create_and_solve_dd(problem_instance: 'AbstractProblem', objective_weights: 
                 f',{str(dd_instance.get_decision_diagram().get_node_count())}'
                 f',{str(dd_instance.get_decision_diagram().get_arc_count())}'
                 f',{str(dd_instance.get_decision_diagram().get_actual_max_width())}'
-                f',{gui_structure.sort}\n')
+                f',{gui_structure.sort}'
+                f',{gui_structure.semi_flag}'
+                f',{connect_layer_statistic(dd_instance)}\n')
 
     if gui_structure.output_file_path:
         write_statistics(gui_structure.output_file_path, statistics, headers)
@@ -194,7 +207,11 @@ def _build_dd_for_cuts(dd_instance: 'DD', gui_cuts_structure: GuiCutsStructure) 
     Build the decision diagram for cut generation according to the requested DD type.
     Restricted/relaxed are width-limited; exact ignores the width. The DD is reduced afterwards.
     '''
-    if gui_cuts_structure.dd_type == DDType.RESTRICTED:
+    if gui_cuts_structure.semi_flag:
+        if gui_cuts_structure.connect_layer is not None:
+            dd_instance.problem.connect_layer = gui_cuts_structure.connect_layer
+        dd_instance.create_semi_decision_diagram(gui_cuts_structure.verbose)
+    elif gui_cuts_structure.dd_type == DDType.RESTRICTED:
         dd_instance.create_restricted_decision_diagram(gui_cuts_structure.maximum_width, gui_cuts_structure.verbose)
     elif gui_cuts_structure.dd_type == DDType.RELAX_PRIORITY:
         dd_instance.create_relax_priority_decision_diagram(gui_cuts_structure.maximum_width, gui_cuts_structure.verbose)
@@ -208,7 +225,7 @@ def gurobi_dd_cutting_planes(gui_cuts_structure: GuiCutsStructure, gurobi_instan
     '''
     Run the Gurobi code with DD-based cutting planes (callback approach).
     '''
-    headers: str = "File_name,Problem type,Variables number,DD Type,Max Width,Cut Type,CutStrengthening,Best solution,Root Gap,Gap,Solution Time,DD Time,Number Nodes,Number Arcs,NodeBB,Num Cuts"
+    headers: str = "File_name,Problem type,Variables number,DD Type,Max Width,Cut Type,CutStrengthening,Best solution,Root Gap,Gap,Solution Time,DD Time,Number Nodes,Number Arcs,NodeBB,Num Cuts,Semi,Connect Layer"
 
     dd_instance: DD = DD(problem_instance)
     _build_dd_for_cuts(dd_instance, gui_cuts_structure)
@@ -239,7 +256,9 @@ def gurobi_dd_cutting_planes(gui_cuts_structure: GuiCutsStructure, gurobi_instan
         f'{dd_instance.get_decision_diagram().get_node_count()},'
         f'{dd_instance.get_decision_diagram().get_arc_count()},'
         f'{int(gurobi_instance.model.NodeCount)},'
-        f'{gurobi_instance.num_cuts_added}\n'
+        f'{gurobi_instance.num_cuts_added},'
+        f'{gui_cuts_structure.semi_flag},'
+        f'{connect_layer_statistic(dd_instance)}\n'
     )
     if gui_cuts_structure.output_file_path:
         write_statistics(gui_cuts_structure.output_file_path, statistics, headers)
@@ -249,7 +268,7 @@ def gurobi_dd_cutting_planes_soc(gui_cuts_structure: GuiCutsStructure, gurobi_in
     Run the Gurobi code with DD-based cutting planes for SOC Knapsack.
     Builds one DD per SOC constraint, then optimizes with cuts and saves statistics.
     '''
-    headers: str = "File_name,Problem type,Variables number,DD Type,Max Width,Num SOC constraints,Cut Type,CutStrengthening,Best solution,Root Gap,Gap,Solution Time,DD Time,Total Number Nodes,Total Number Arcs,NodeBB,Num Cuts"
+    headers: str = "File_name,Problem type,Variables number,DD Type,Max Width,Num SOC constraints,Cut Type,CutStrengthening,Best solution,Root Gap,Gap,Solution Time,DD Time,Total Number Nodes,Total Number Arcs,NodeBB,Num Cuts,Semi,Connect Layer"
 
     num_constraints: int = len(sock_params.right_side_of_restrictions)
     dds: list = []
@@ -290,7 +309,9 @@ def gurobi_dd_cutting_planes_soc(gui_cuts_structure: GuiCutsStructure, gurobi_in
         f'{total_nodes},'
         f'{total_arcs},'
         f'{int(gurobi_instance.model.NodeCount)},'
-        f'{gurobi_instance.num_cuts_added}\n'
+        f'{gurobi_instance.num_cuts_added},'
+        f'{gui_cuts_structure.semi_flag},'
+        f'{connect_layer_statistic(dds[0])}\n'
     )
     if gui_cuts_structure.output_file_path:
         write_statistics(gui_cuts_structure.output_file_path, statistics, headers)

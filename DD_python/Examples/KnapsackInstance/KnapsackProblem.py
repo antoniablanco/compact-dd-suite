@@ -30,6 +30,12 @@ class KnapsackProblem(AbstractProblem):
         scratch_state[0] = new_val
         return new_val <= self.capacity
 
+    def connection_function(self, forward_state: 'State', variable_index: int, variable_value: int, backward_state: 'State') -> bool:
+        '''
+        Prefix weight, connection item and suffix weight must fit together in the knapsack.
+        '''
+        return forward_state + self.weights[variable_index] * variable_value + backward_state <= self.capacity
+
     def get_priority_for_discard_node(self, state: 'State') -> int:
         '''
         Get the priority for discard a node.

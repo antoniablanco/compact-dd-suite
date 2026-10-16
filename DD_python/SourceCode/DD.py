@@ -3,6 +3,8 @@ from SourceCode.GraphAlgorithms.DDReducer.DDReducer import DDReducer
 from SourceCode.DDBuilder.RestrictedDDBuilder.RestrictedDDBuilder import RestrictedDDBuilder
 from SourceCode.DDBuilder.RelaxedDDBuilder.RelaxedPriorityDDBuilder import RelaxedPriorityDDBuilder
 from SourceCode.DDBuilder.RelaxedDDBuilder.RelaxedGroupingDDBuilder import RelaxedGroupingDDBuilder
+from SourceCode.DDSemiBuilder.ExactSemiDDBuilder.ExactSemiDDBuilder import ExactSemiDDBuilder
+from SourceCode.DDSemiBuilder.SemiDDReducer.SemiDDReducer import SemiDDReducer
 from SourceCode.GraphVisualization.GraphFile import GraphFile
 from Exceptions.MyExceptions import GraphAlreadyExists, NoGraphFound
 import copy
@@ -27,6 +29,7 @@ class DD():
         self.problem: 'AbstractProblem' = problem
         self._graph_DD: 'Graph' = None
         self._dd_kind: str = 'exact'
+        self._connect_layer: int = None
 
     def create_decision_diagram(self, verbose: bool = False) -> None:
         '''
@@ -109,6 +112,27 @@ class DD():
         self._dd_builder_time = round(end_time - start_time, 4)
         print(f"Relax grouping decision diagram creation completed.")
 
+    def create_semi_decision_diagram(self, verbose: bool=False) -> None:
+        '''
+        Creates the exact semi decision diagram (sMDD), connecting an upper graph built top-down
+        and a lower graph built bottom-up at problem.connect_layer.
+
+        Parameters:
+        verbose (bool): If True, prints additional information during the creation process.
+        '''
+        if self._graph_DD is not None:
+            raise GraphAlreadyExists()
+
+        print("\nStarting the creation of the semi decision diagram...")
+        start_time: float = time.time()
+        self.semi_dd_builder: 'ExactSemiDDBuilder' = ExactSemiDDBuilder(self.problem)
+        self._graph_DD: 'Graph' = self.semi_dd_builder.get_decision_diagram(verbose)
+        self._dd_kind = 'exact'
+        self._connect_layer = self.semi_dd_builder.connect_layer
+        end_time: float = time.time()
+        self._dd_builder_time = round(end_time - start_time, 4)
+        print(f"Semi decision diagram creation completed.")
+
     def reduce_decision_diagram(self, verbose: bool=False) -> None:
         '''
         Creates the reduced decision diagram.
@@ -123,7 +147,10 @@ class DD():
         print("\nStarting the reduction of the decision diagram...")
         start_time: float = time.time()
 
-        self.reduce_dd_builder: 'DDReducer' = DDReducer(self._graph_DD, self.problem)
+        if self._connect_layer is None:
+            self.reduce_dd_builder: 'DDReducer' = DDReducer(self._graph_DD, self.problem)
+        else:
+            self.reduce_dd_builder: 'SemiDDReducer' = SemiDDReducer(self._graph_DD, self.problem, self._connect_layer)
         self.reduce_dd_builder.reduce_decision_diagram(verbose)
 
         end_time: float = time.time()
@@ -140,7 +167,7 @@ class DD():
         if self._graph_DD is None or self._graph_DD.structure is []:
             raise NoGraphFound()
 
-        GraphFile(file_name, self._graph_DD, self.problem)
+        GraphFile(file_name, self._graph_DD, self.problem, self._connect_layer)
 
     def get_decision_diagram(self) -> 'Graph':
         '''
@@ -185,6 +212,16 @@ class DD():
         str: The kind of decision diagram that was built.
         '''
         return self._dd_kind
+
+    def get_connect_layer(self) -> int:
+        '''
+        Returns the layer where the upper and lower graphs were connected, or None if the
+        diagram is not a semi decision diagram.
+
+        Returns:
+        int: The connection layer of the semi decision diagram.
+        '''
+        return self._connect_layer
 
     def get_reduction_time(self) -> float:
         '''

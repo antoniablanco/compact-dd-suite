@@ -65,3 +65,13 @@ class GurobiModelNotInitialized(Exception):
     def __init__(self, message="Gurobi model not initialized (possible license issue)"):
         self.message = message
         super().__init__(self.message)
+
+class SemiDDNotSupported(Exception):
+    """
+    Exception raised when a semi decision diagram is requested for a problem that does not
+    implement the methods it requires (e.g. the connection function).
+    """
+    def __init__(self, problem_name, missing_methods):
+        self.message = (f"The problem '{problem_name}' does not support semi decision diagrams, "
+                        f"missing: {', '.join(missing_methods)}")
+        super().__init__(self.message)

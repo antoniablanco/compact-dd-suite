@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+import math
 
 
 class AbstractProblem(ABC):
@@ -7,6 +8,9 @@ class AbstractProblem(ABC):
     These can be used with the provided DD class to solve decision diagrams.
 
     *IMPORTANT: Whenever 'state' is mentioned, it must follow the same type as given in initial_state.
+
+    *SEMI DD (sMDD): connection_function is optional, but it must be implemented to build any
+    semi decision diagram. backward_transition_function defaults to transition_function.
     '''
 
     def __init__(self, initial_state: 'State', variables: list[tuple['Variable', 'Domain']], sort: bool = True) -> None:
@@ -39,6 +43,8 @@ class AbstractProblem(ABC):
         # Use these instead of parsing names (e.g. int("x_3"[2:]) - 1) anywhere in the code.
         self._name_to_index: dict[str, int] = {name: i for i, name in enumerate(ordered_variables)}
         self._index_to_name: dict[int, str] = {i: name for i, name in enumerate(ordered_variables)}
+
+        self._connect_layer: int = math.ceil(len(variables) / 2)
 
     @property
     def ordered_variables(self) -> list[str]:
@@ -121,6 +127,34 @@ class AbstractProblem(ABC):
         - list: The same values, one per DD position.
         '''
         return [values[position] for position in self._dd_to_position]
+
+    @property
+    def connect_layer(self) -> int:
+        '''
+        Layer where the upper and lower graphs of a semi decision diagram are connected.
+        The connection arcs belong to the variable in position connect_layer (1-based), so they
+        go from layer connect_layer - 1 (last upper layer) to layer connect_layer (first lower layer).
+        Defaults to ceil(N/2), with N the number of variables.
+
+        Returns:
+        - int: The connection layer, in [1, N].
+        '''
+        return self._connect_layer
+
+    @connect_layer.setter
+    def connect_layer(self, layer: int) -> None:
+        '''
+        Sets the connection layer of the semi decision diagram.
+
+        Parameters:
+        - layer (int): The connection layer. Must be an int in [1, N], with N the number of variables.
+        '''
+        number_of_variables: int = len(self.ordered_variables)
+        if not isinstance(layer, int) or isinstance(layer, bool):
+            raise TypeError(f"connect_layer must be an int, got {type(layer).__name__}")
+        if not 1 <= layer <= number_of_variables:
+            raise ValueError(f"connect_layer must be in [1, {number_of_variables}], got {layer}")
+        self._connect_layer = layer
 
     def sort_variables(self, variables: list[tuple['Variable', 'Domain']], **kwargs) -> list[str]:
         '''
@@ -235,3 +269,50 @@ class AbstractProblem(ABC):
         - State: The final state of the problem.
         '''
         return self.initial_state
+
+    def get_initial_backward_state(self) -> 'State':
+        '''
+        Defines the state of the terminal node, where the backward construction of a semi
+        decision diagram starts. Defaults to a copy of the initial state; override it when the
+        backward pass needs a different starting point.
+
+        Returns:
+        - State: The initial backward state of the problem.
+        '''
+        return self.get_state_copy(self.initial_state)
+
+    def backward_transition_function(self, next_state: 'State', variable_id: int, variable_value: int, scratch_state: list) -> bool:
+        '''
+        Defines the backward transition function, used to build the lower graph of a semi
+        decision diagram from the terminal node upwards. Defaults to transition_function;
+        override it when the backward state does not evolve like the forward state.
+
+        Writes the new state into scratch_state[0] and returns True if the transition is feasible.
+        scratch_state[0] must not be read on a False return.
+
+        Parameters:
+        - next_state('State'): The state of the node in the following layer. *READ IMPORTANT
+        - variable_id(int): The identifier of the variable being assigned.
+        - variable_value(int): The value of the variable being assigned.
+        - scratch_state(list): Single-element list used as a scratch buffer; set scratch_state[0] to the new state.
+
+        Returns:
+        - bool: True if the new state is feasible, False otherwise.
+        '''
+        return self.transition_function(next_state, variable_id, variable_value, scratch_state)
+
+    def connection_function(self, forward_state: 'State', variable_id: int, variable_value: int, backward_state: 'State') -> bool:
+        '''
+        Defines whether a node of the upper graph can be connected to a node of the lower graph
+        through an arc of the connection layer. Required by every semi DD builder.
+
+        Parameters:
+        - forward_state('State'): State of the node in the last layer of the upper graph. *READ IMPORTANT
+        - variable_id(int): The identifier of the connection variable.
+        - variable_value(int): The value of the connection variable.
+        - backward_state('State'): State of the node in the first layer of the lower graph. *READ IMPORTANT
+
+        Returns:
+        - bool: True if the prefix and suffix can be joined with that value, False otherwise.
+        '''
+        raise NotImplementedError("The method connection_function has not been implemented yet")

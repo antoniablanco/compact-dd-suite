@@ -99,4 +99,16 @@ ENV/
 env.bak/
 venv.bak/
 
+# Learn documentation
 Doc/*
+
+# mkdocs documentation
+/web-docs/site
+
+
+# Overleaf
+Bitacora/*
+
+# Cluster credentials
+*/credenciales.txt
+POC_sMDD/*

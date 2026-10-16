@@ -47,6 +47,8 @@ class GuiStructure:
         problem_class: ProblemClass = ProblemClass.KNAPSACK,
         minmax: str = "min",
         sort: bool = True,
+        semi_flag: bool = False,
+        connect_layer: int = None,
     ):
         self.input_file_path: str = input_file_path
         self.output_file_path: str = output_file_path
@@ -58,6 +60,8 @@ class GuiStructure:
         self.problem_class: ProblemClass = problem_class
         self.minmax: str = minmax
         self.sort: bool = sort
+        self.semi_flag: bool = semi_flag
+        self.connect_layer: int = connect_layer
 
 
 class GuiCutsStructure:
@@ -72,6 +76,8 @@ class GuiCutsStructure:
         continuous_flag: bool = False,
         dd_type: DDType = DDType.EXACT,
         maximum_width: int = 2147483646,
+        semi_flag: bool = False,
+        connect_layer: int = None,
     ):
         self.input_file_path: str = input_file_path
         self.output_file_path: str = output_file_path
@@ -82,6 +88,8 @@ class GuiCutsStructure:
         self.continuous_flag: bool = continuous_flag
         self.dd_type: DDType = dd_type
         self.maximum_width: int = maximum_width
+        self.semi_flag: bool = semi_flag
+        self.connect_layer: int = connect_layer
 
 class GuiGurobiStructure:
     def __init__(

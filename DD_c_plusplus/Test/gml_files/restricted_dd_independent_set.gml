@@ -4,182 +4,242 @@ graph [
 
  node [
 	 id 0
-	 label "0             11111"
+	 label "11111"
  	graphics [
 	 type "ellipse"
 	 hasFill 0
 	 w 90.0   h 110.0
 	 outline "#000000" ]
-]
  	LabelGraphics [
-	 text "0             11111"
+	 text "Nodo 0"
 	 fontSize 12
 	 fontName "Dialog"
-	 model "sides"
-	 anchor "e"
-	 borderDistance -50.0
+	 model "internal"
+	 anchor "t"
+]
+ 	LabelGraphics [
+	 text "11111"
+	 fontSize 12
+	 fontName "Dialog"
+	 model "internal"
+	 anchor "c"
+]
 ]
 
  node [
 	 id 1
-	 label "1             11110"
+	 label "11110"
  	graphics [
 	 type "ellipse"
 	 hasFill 0
 	 w 90.0   h 110.0
 	 outline "#000000" ]
-]
  	LabelGraphics [
-	 text "1             11110"
+	 text "Nodo 1"
 	 fontSize 12
 	 fontName "Dialog"
-	 model "sides"
-	 anchor "e"
-	 borderDistance -50.0
+	 model "internal"
+	 anchor "t"
+]
+ 	LabelGraphics [
+	 text "11110"
+	 fontSize 12
+	 fontName "Dialog"
+	 model "internal"
+	 anchor "c"
+]
 ]
 
  node [
 	 id 2
-	 label "2             11000"
+	 label "11000"
  	graphics [
 	 type "ellipse"
 	 hasFill 0
 	 w 90.0   h 110.0
 	 outline "#000000" ]
-]
  	LabelGraphics [
-	 text "2             11000"
+	 text "Nodo 2"
 	 fontSize 12
 	 fontName "Dialog"
-	 model "sides"
-	 anchor "e"
-	 borderDistance -50.0
+	 model "internal"
+	 anchor "t"
+]
+ 	LabelGraphics [
+	 text "11000"
+	 fontSize 12
+	 fontName "Dialog"
+	 model "internal"
+	 anchor "c"
+]
 ]
 
  node [
 	 id 3
-	 label "3             10000"
+	 label "10000"
  	graphics [
 	 type "ellipse"
 	 hasFill 0
 	 w 90.0   h 110.0
 	 outline "#000000" ]
-]
  	LabelGraphics [
-	 text "3             10000"
+	 text "Nodo 3"
 	 fontSize 12
 	 fontName "Dialog"
-	 model "sides"
-	 anchor "e"
-	 borderDistance -50.0
+	 model "internal"
+	 anchor "t"
+]
+ 	LabelGraphics [
+	 text "10000"
+	 fontSize 12
+	 fontName "Dialog"
+	 model "internal"
+	 anchor "c"
+]
 ]
 
  node [
 	 id 4
-	 label "4             11000"
+	 label "11000"
  	graphics [
 	 type "ellipse"
 	 hasFill 0
 	 w 90.0   h 110.0
 	 outline "#000000" ]
-]
  	LabelGraphics [
-	 text "4             11000"
+	 text "Nodo 4"
 	 fontSize 12
 	 fontName "Dialog"
-	 model "sides"
-	 anchor "e"
-	 borderDistance -50.0
+	 model "internal"
+	 anchor "t"
+]
+ 	LabelGraphics [
+	 text "11000"
+	 fontSize 12
+	 fontName "Dialog"
+	 model "internal"
+	 anchor "c"
+]
 ]
 
  node [
 	 id 5
-	 label "5             10000"
+	 label "10000"
  	graphics [
 	 type "ellipse"
 	 hasFill 0
 	 w 90.0   h 110.0
 	 outline "#000000" ]
-]
  	LabelGraphics [
-	 text "5             10000"
+	 text "Nodo 5"
 	 fontSize 12
 	 fontName "Dialog"
-	 model "sides"
-	 anchor "e"
-	 borderDistance -50.0
+	 model "internal"
+	 anchor "t"
+]
+ 	LabelGraphics [
+	 text "10000"
+	 fontSize 12
+	 fontName "Dialog"
+	 model "internal"
+	 anchor "c"
+]
 ]
 
  node [
 	 id 6
-	 label "6             11000"
+	 label "11000"
  	graphics [
 	 type "ellipse"
 	 hasFill 0
 	 w 90.0   h 110.0
 	 outline "#000000" ]
-]
  	LabelGraphics [
-	 text "6             11000"
+	 text "Nodo 6"
 	 fontSize 12
 	 fontName "Dialog"
-	 model "sides"
-	 anchor "e"
-	 borderDistance -50.0
+	 model "internal"
+	 anchor "t"
+]
+ 	LabelGraphics [
+	 text "11000"
+	 fontSize 12
+	 fontName "Dialog"
+	 model "internal"
+	 anchor "c"
+]
 ]
 
  node [
 	 id 7
-	 label "7             10000"
+	 label "10000"
  	graphics [
 	 type "ellipse"
 	 hasFill 0
 	 w 90.0   h 110.0
 	 outline "#000000" ]
-]
  	LabelGraphics [
-	 text "7             10000"
+	 text "Nodo 7"
 	 fontSize 12
 	 fontName "Dialog"
-	 model "sides"
-	 anchor "e"
-	 borderDistance -50.0
+	 model "internal"
+	 anchor "t"
+]
+ 	LabelGraphics [
+	 text "10000"
+	 fontSize 12
+	 fontName "Dialog"
+	 model "internal"
+	 anchor "c"
+]
 ]
 
  node [
 	 id 8
-	 label "8             00000"
+	 label "00000"
  	graphics [
 	 type "ellipse"
 	 hasFill 0
 	 w 90.0   h 110.0
 	 outline "#000000" ]
-]
  	LabelGraphics [
-	 text "8             00000"
+	 text "Nodo 8"
 	 fontSize 12
 	 fontName "Dialog"
-	 model "sides"
-	 anchor "e"
-	 borderDistance -50.0
+	 model "internal"
+	 anchor "t"
+]
+ 	LabelGraphics [
+	 text "00000"
+	 fontSize 12
+	 fontName "Dialog"
+	 model "internal"
+	 anchor "c"
+]
 ]
 
  node [
 	 id 9
-	 label "9             00000"
+	 label "00000"
  	graphics [
 	 type "ellipse"
 	 hasFill 0
 	 w 90.0   h 110.0
 	 outline "#000000" ]
-]
  	LabelGraphics [
-	 text "9             00000"
+	 text "Nodo 9"
 	 fontSize 12
 	 fontName "Dialog"
-	 model "sides"
-	 anchor "e"
-	 borderDistance -50.0
+	 model "internal"
+	 anchor "t"
+]
+ 	LabelGraphics [
+	 text "00000"
+	 fontSize 12
+	 fontName "Dialog"
+	 model "internal"
+	 anchor "c"
+]
 ]
 
 edge [

@@ -24,7 +24,7 @@ html:
 # ── main.py ───────────────────────────────────────────────────────────────────
 
 main_knapsack:
-	python main.py ../DataInstances/Knapsack/Standard/f1_l-d_kp_10_269.txt -Knapsack -Exact -Output_results.csv -Max -Width_200 -RelaxGrouping
+	python main.py ../DataInstances/Knapsack/Standard/f4_l-d_kp_4_11.txt -Knapsack -Exact -Output_results.csv -Max -Export
 
 main_independent_set:
 	python main.py ../DataInstances/IndependentSet/Custom/independent_set_instance_v100_d75_seed1.txt -IndependentSet -Exact -Output_results.csv -Max -Width_200 -Reduce -NoSort
@@ -37,6 +37,9 @@ main_socknapsack:
 
 main_sequencing:
 	python main.py ../DataInstances/Sequencing/Custom/sequencing_n5_s025_seed1.txt -Sequencing -Exact -Output_results.csv -Min
+
+main_knapsack_semi:
+	python main.py ../DataInstances/Knapsack/Standard/f4_l-d_kp_4_11.txt -Knapsack -Exact -Semi -ConnectLayer_3 -Output_results_semi.csv -Max -Export
 
 
 # ── main_gurobi.py ────────────────────────────────────────────────────────────
@@ -61,6 +64,9 @@ gurobi_sequencing:
 
 cuts_knapsack:
 	python main_cuts.py ../DataInstances/Knapsack/Custom/knapsack_instance_v4_d4_seed1.txt -Knapsack -JointFlowCuts -Verbose -Strength -Output_resultCuts.csv -Continuous
+
+cuts_knapsack_semi:
+	python main_cuts.py ../DataInstances/Knapsack/Custom/knapsack_instance_v4_d4_seed1.txt -Knapsack -FlowCuts -Semi -Verbose -Output_resultCuts.csv -Continuous
 
 cuts_independent_set:
 	python main_cuts.py ../DataInstances/IndependentSet/Custom/independent_set_instance_v5_d3_seed2.txt -IndependentSet -FlowCuts -Verbose -Strength -Output_resultCuts.csv -Continuous

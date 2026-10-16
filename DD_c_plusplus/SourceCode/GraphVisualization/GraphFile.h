@@ -69,10 +69,17 @@ private:
      */
     bool is_node_binary(Node<T>* node);
     /**
-     * @brief Adds node information to the GML file.
+     * @brief Adds node information to the GML file: "Nodo <id>" at the top of the node and its
+     * state in the center.
      * @param node Node object to add to the GML file.
      */
     void add_node(Node<T>* node);
+    /**
+     * @brief Writes a label inside the current node of the GML file.
+     * @param text Text of the label.
+     * @param anchor Position of the label inside the node ("t" top, "c" center).
+     */
+    void add_node_label(const string& text, const string& anchor);
     /**
      * @brief Adds arc to the GML file.
      * @param vector<Arc<T>*> arc Vector of arc to add to the GML file.

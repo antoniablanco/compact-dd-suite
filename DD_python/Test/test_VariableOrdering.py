@@ -48,10 +48,13 @@ class VariableOrderingTest(unittest.TestCase):
 
         self.problem_instance: 'AbstractProblem' = KnapsackProblemSortedByWeight(self.params)
 
-    def solve(self, problem: 'AbstractProblem') -> int:
+    def solve(self, problem: 'AbstractProblem', semi: bool = False) -> int:
         dd_instance: DD = DD(problem)
         with patch('sys.stdout', new_callable=io.StringIO):
-            dd_instance.create_decision_diagram()
+            if semi:
+                dd_instance.create_semi_decision_diagram()
+            else:
+                dd_instance.create_decision_diagram()
             dd_instance.reduce_decision_diagram()
 
             shortest_longest_path_instance: ShortestLongestPath = ShortestLongestPath(dd_instance)
@@ -70,6 +73,7 @@ class VariableOrderingTest(unittest.TestCase):
         expected_value: int = self.solve(unsorted_problem)
 
         self.assertEqual(expected_value, self.solve(self.problem_instance))
+        self.assertEqual(expected_value, self.solve(self.problem_instance, semi=True))
 
     def test_ordering_cannot_change(self):
         for attribute in ('ordered_variables', 'name_to_index', 'index_to_name', 'dd_to_original_index'):
