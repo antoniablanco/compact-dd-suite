@@ -274,7 +274,9 @@ class AbstractProblem(ABC):
         '''
         Defines the state of the terminal node, where the backward construction of a semi
         decision diagram starts. Defaults to a copy of the initial state; override it when the
-        backward pass needs a different starting point.
+        backward pass needs a different starting point. The backward state may carry different
+        information than the forward one (e.g. a longer bitarray), as long as get_state_as_string
+        and get_state_copy accept it; the backward pass uses its own scratch buffer, built from it.
 
         Returns:
         - State: The initial backward state of the problem.

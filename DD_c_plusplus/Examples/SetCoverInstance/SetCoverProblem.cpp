@@ -80,6 +80,7 @@ dynamic_bitset<>* SetCoverProblem::convert_to_bitset(const vector<int>& vec, int
 void SetCoverProblem::check_atributes(const vector<pair<string, vector<int>>>& variables, dynamic_bitset<>* initial_state) {
     check_same_len_matrix_and_right_side(initial_state);
     check_same_len_rows_matrix_and_variables(variables);
+    check_every_restriction_is_coverable();
 }
 
 void SetCoverProblem::check_same_len_matrix_and_right_side(dynamic_bitset<>* initial_state) {
@@ -96,28 +97,36 @@ void SetCoverProblem::check_same_len_rows_matrix_and_variables(const vector<pair
     }
 }
 
-void SetCoverProblem::calculate_row_max_index() {
-    max_indices.clear();
+void SetCoverProblem::check_every_restriction_is_coverable() {
+    vector<size_t> uncoverable_rows;
     for (size_t row = 0; row < matrix_of_weight.size(); ++row) {
-        int max_index = -1;
-        for (int col = matrix_of_weight[row].size() - 1; col >= 0; --col) {
-            if (matrix_of_weight[row][col] == 1) {
-                max_index = col + 1;
-                break;
-            }
-        }
-        max_indices.push_back(max_index);
+        if (matrix_of_weight[row].none())
+            uncoverable_rows.push_back(row);
+    }
+    if (uncoverable_rows.empty())
+        return;
+
+    ostringstream message;
+    message << "Set cover restrictions [";
+    for (size_t i = 0; i < uncoverable_rows.size(); ++i)
+        message << (i > 0 ? ", " : "") << uncoverable_rows[i];
+    message << "] are not covered by any variable";
+    throw InfeasibleInstance(message.str());
+}
+
+void SetCoverProblem::calculate_row_max_index() {
+    dynamic_bitset<> covered_by_suffix(matrix_of_weight.size());
+    max_indices.assign(matrix_of_weight_transpose.size(), dynamic_bitset<>());
+    for (int variable_index = static_cast<int>(matrix_of_weight_transpose.size()) - 1; variable_index >= 0; --variable_index) {
+        max_indices[variable_index] = ~covered_by_suffix;
+        covered_by_suffix |= matrix_of_weight_transpose[variable_index];
     }
 }
 
 bool SetCoverProblem::transition_function(const dynamic_bitset<>* previous_state, const int variable_index, int variable_value, dynamic_bitset<>* scratch_state) const {
     if (variable_value == 0) {
-        for (size_t row = 0; row < previous_state->size(); ++row) {
-            if (max_indices[row] != -1 && variable_index >= max_indices[row] - 1) {
-                if (previous_state->test(row))
-                    return false;
-            }
-        }
+        if (previous_state->intersects(max_indices[variable_index]))
+            return false;
         *scratch_state = *previous_state;
         return true;
     }

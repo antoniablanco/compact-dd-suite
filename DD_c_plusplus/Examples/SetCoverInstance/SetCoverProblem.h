@@ -101,7 +101,7 @@ private:
     vector<dynamic_bitset<>> matrix_of_weight; /**< Matrix of weights of the elements. */
     vector<dynamic_bitset<>> matrix_of_weight_transpose; /**< Transpose matrix of weights of the elements. */
     dynamic_bitset<> right_side_of_restrictions;
-    vector<int> max_indices;
+    vector<dynamic_bitset<>> max_indices; /**< Entry i: restrictions whose last covering variable is at position <= i. */
 
     /**
      * @brief Check the attributes of the problem.
@@ -119,6 +119,11 @@ private:
      * @param variables Problem variables, represented as pairs of names and domains.
      */
     void check_same_len_rows_matrix_and_variables(const vector<pair<string, vector<int>>>& variables);
+    /**
+     * @brief Check that every restriction is covered by at least one variable.
+     * @throws InfeasibleInstance if some restriction cannot be covered.
+     */
+    void check_every_restriction_is_coverable();
 
     /**
      * @brief Convert a vector of integers to a bitset.
@@ -133,7 +138,10 @@ private:
      */
     void create_transpose_matrix_of_weights(vector<vector<int>>& vector_matrix_of_weight);
 
-
+    /**
+     * @brief Computes max_indices: for each variable position i, the restrictions whose last
+     * covering variable is at position <= i, which can no longer be covered once x_i = 0.
+     */
     void calculate_row_max_index();
 };
 #endif //TEMPLATETYPE_SetCoverPROBLEM_H

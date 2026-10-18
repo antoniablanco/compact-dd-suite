@@ -40,6 +40,7 @@ SOCKnapsackProblem::SOCKnapsackProblem(vector<double>* initial_state,
       omega(omega),
       capacity(capacity)
 {
+    check_monotone_constraint();
     initialize_variable_order(original_variable_names_domains, sort);
     linear_weights = reorder_to_dd_order(_pruned_linear_weights);
     sqrt_weights   = reorder_to_dd_order(_pruned_sqrt_weights);
@@ -54,6 +55,18 @@ SOCKnapsackProblem::SOCKnapsackProblem(vector<double>* initial_state,
            "linear_weights and variables must have the same length");
     assert(sqrt_weights.size() == ordered_variables().size() &&
            "sqrt_weights and variables must have the same length");
+}
+
+void SOCKnapsackProblem::check_monotone_constraint() const {
+    if (omega < 0)
+        throw invalid_argument("SOCKnapsack requires a non-negative omega, got " + to_string(omega));
+    // Pruned variables only drop zero weights, so checking the pruned list covers every variable.
+    for (size_t i = 0; i < _pruned_linear_weights.size(); ++i) {
+        if (_pruned_linear_weights[i] < 0)
+            throw invalid_argument("SOCKnapsack requires non-negative linear weights, '" +
+                                   original_variable_names_domains[i].first + "' has " +
+                                   to_string(_pruned_linear_weights[i]));
+    }
 }
 
 // ============================================================

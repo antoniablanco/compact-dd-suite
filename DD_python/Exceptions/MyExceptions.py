@@ -75,3 +75,12 @@ class SemiDDNotSupported(Exception):
         self.message = (f"The problem '{problem_name}' does not support semi decision diagrams, "
                         f"missing: {', '.join(missing_methods)}")
         super().__init__(self.message)
+
+class InfeasibleInstance(Exception):
+    """
+    Exception raised when the instance is known to have no feasible solution before building
+    any decision diagram (e.g. a set cover restriction that no variable covers).
+    """
+    def __init__(self, message="The instance has no feasible solution"):
+        self.message = message
+        super().__init__(self.message)

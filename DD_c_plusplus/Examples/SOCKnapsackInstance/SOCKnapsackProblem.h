@@ -117,6 +117,14 @@ private:
         map<string, int> original_name_to_index;
     };
 
+    /**
+     * @brief Check that omega and the linear weights are non-negative, so that adding an item never
+     *        makes a state more feasible. The sentinels and the semi DD connection rely on it. The
+     *        sqrt weights enter squared, so their sign does not matter.
+     * @throws invalid_argument if omega or some linear weight is negative.
+     */
+    void check_monotone_constraint() const;
+
     /** Delegating constructor that receives already-pruned data. */
     SOCKnapsackProblem(vector<double>* initial_state,
                        PrunedData&& pd,

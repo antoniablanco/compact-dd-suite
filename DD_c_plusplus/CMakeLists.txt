@@ -244,6 +244,7 @@ add_executable(DD_optimization_program_tests
         Test/test_SetCoverProblemSort.cpp
         Test/test_SequencingProblem.cpp
         Test/test_VariableOrdering.cpp
+        Test/test_SOCKnapsackProblem.cpp
 )
 
 target_link_libraries(DD_optimization_program_tests PRIVATE

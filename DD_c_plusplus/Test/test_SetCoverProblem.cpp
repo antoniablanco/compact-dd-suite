@@ -447,3 +447,18 @@ TEST_F(SetCoverProblemTest, TestCompareGMLRelaxedDDGraph) {
 
     ASSERT_TRUE(actual_output==expected_output);
 }
+
+TEST_F(SetCoverProblemTest, TestUncoverableRestrictionThrows) {
+    vector<pair<string, vector<int>>> variables = {
+            make_pair("conjunto_A", vector<int>{0, 1}),
+            make_pair("conjunto_B", vector<int>{0, 1})
+    };
+    SetCoverInstance params(new dynamic_bitset<>(3, 0b111), variables, {{1, 0}, {0, 0}, {0, 1}}, {1, 1, 1});
+
+    try {
+        SetCoverProblem problem(params, false);
+        FAIL() << "Expected InfeasibleInstance";
+    } catch (const InfeasibleInstance& exception) {
+        ASSERT_NE(string(exception.what()).find("[1]"), string::npos);
+    }
+}

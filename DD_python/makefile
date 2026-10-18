@@ -3,7 +3,9 @@
 .PHONY: test pytest coverage report html \
         main_knapsack main_independent_set main_set_cover main_socknapsack main_sequencing \
         gurobi_knapsack gurobi_independent_set gurobi_set_cover gurobi_socknapsack gurobi_sequencing \
-        cuts_knapsack cuts_independent_set cuts_set_cover cuts_socknapsack cuts_sequencing
+        cuts_knapsack cuts_independent_set cuts_set_cover cuts_socknapsack cuts_sequencing \
+        main_knapsack_semi main_independent_set_semi main_set_cover_semi main_socknapsack_semi main_sequencing_semi \
+        cuts_knapsack_semi
 
 test:
 	python -m unittest discover -v -s ./Test -p "test_*.py" -b
@@ -30,16 +32,13 @@ main_independent_set:
 	python main.py ../DataInstances/IndependentSet/Custom/independent_set_instance_v100_d75_seed1.txt -IndependentSet -Exact -Output_results.csv -Max -Width_200 -Reduce -NoSort
 
 main_set_cover:
-	python main.py ../DataInstances/SetCover/Standard/set_cover_n100_m63_d0.1_b_w38_seed1.txt -SetCover -Relaxed -Output_results.csv -Min -Width_20000 -NoSort
+	python main.py ../DataInstances/SetCover/Custom/set_cover_v6_r3_seed1.txt -SetCover -Exact -Output_results.csv -Min -Width_20000 -NoSort -Export 
 
 main_socknapsack:
-	python main.py ../DataInstances/SOCKnapsack/knapsack_n5m2o1b5_1.txt -SOCKnapsack -Exact -Output_results.csv -Max -Width_20 -Reduce
+	python main.py ../DataInstances/SOCKnapsack/knapsack_n5m2o1b5_1.txt -SOCKnapsack -Exact -Output_results.csv -Max -Width_20 -Export 
 
 main_sequencing:
-	python main.py ../DataInstances/Sequencing/Custom/sequencing_n5_s025_seed1.txt -Sequencing -Exact -Output_results.csv -Min
-
-main_knapsack_semi:
-	python main.py ../DataInstances/Knapsack/Standard/f4_l-d_kp_4_11.txt -Knapsack -Exact -Semi -ConnectLayer_3 -Output_results_semi.csv -Max -Export
+	python main.py ../DataInstances/Sequencing/Custom/sequencing_n3_s100_seed2.txt -Sequencing -Exact -Output_results.csv -Min -Export -Verbose
 
 
 # ── main_gurobi.py ────────────────────────────────────────────────────────────
@@ -51,7 +50,7 @@ gurobi_independent_set:
 	python main_gurobi.py ../DataInstances/IndependentSet/Custom/independent_set_instance_v5_d3_seed2.txt -IndependentSet -Output_resultsGurobi.csv
 
 gurobi_set_cover:
-	python main_gurobi.py ../DataInstances/SetCover/Standard/set_cover_n100_m63_d0.1_b_w38_seed1.txt -SetCover -Output_resultsGurobi.csv
+	python main_gurobi.py ../DataInstances/SetCover/Custom/set_cover_v6_r3_seed1.txt -SetCover -Output_resultsGurobi.csv
 
 gurobi_socknapsack:
 	python main_gurobi.py ../DataInstances/SOCKnapsack/knapsack_n5m2o1b5_1.txt -SOCKnapsack -Output_resultsGurobiSock.csv
@@ -65,9 +64,6 @@ gurobi_sequencing:
 cuts_knapsack:
 	python main_cuts.py ../DataInstances/Knapsack/Custom/knapsack_instance_v4_d4_seed1.txt -Knapsack -JointFlowCuts -Verbose -Strength -Output_resultCuts.csv -Continuous
 
-cuts_knapsack_semi:
-	python main_cuts.py ../DataInstances/Knapsack/Custom/knapsack_instance_v4_d4_seed1.txt -Knapsack -FlowCuts -Semi -Verbose -Output_resultCuts.csv -Continuous
-
 cuts_independent_set:
 	python main_cuts.py ../DataInstances/IndependentSet/Custom/independent_set_instance_v5_d3_seed2.txt -IndependentSet -FlowCuts -Verbose -Strength -Output_resultCuts.csv -Continuous
 
@@ -79,3 +75,23 @@ cuts_socknapsack:
 
 cuts_sequencing:
 	python main_cuts.py ../DataInstances/Sequencing/Custom/sequencing_n5_s025_seed1.txt -Sequencing -TargetCuts -Verbose -Output_resultCuts.csv -Continuous
+
+
+# ── sMDD (semi) ───────────────────────────────────────────────────────────────
+# Construcción exacta del sMDD (-Exact -Semi). Sin -ConnectLayer_<k> se usa el default ceil(N/2).
+
+main_knapsack_semi:
+	python main.py ../DataInstances/Knapsack/Standard/f4_l-d_kp_4_11.txt -Knapsack -Exact -Semi -ConnectLayer_3 -Output_results_semi.csv -Max -Export
+
+main_independent_set_semi:
+	python main.py ../DataInstances/IndependentSet/Custom/independent_set_instance_v5_d3_seed2.txt -IndependentSet -Exact -Semi -Output_results_semi.csv -Max -Reduce -Export
+
+main_set_cover_semi:
+	python main.py ../DataInstances/SetCover/Custom/set_cover_v6_r3_seed1.txt -SetCover -Exact -Semi -Output_results_semi.csv -Min -Export -Reduce
+
+main_socknapsack_semi:
+	python main.py ../DataInstances/SOCKnapsack/knapsack_n5m2o1b5_1.txt -SOCKnapsack -Exact -Semi -Output_results_semi.csv -Max -Export -Reduce
+
+main_sequencing_semi:
+	python main.py ../DataInstances/Sequencing/Custom/sequencing_n3_s100_seed2.txt -Sequencing -Exact -Semi -Output_results_semi.csv -Min -Export
+

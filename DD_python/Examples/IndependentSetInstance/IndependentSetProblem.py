@@ -36,6 +36,11 @@ class IndependentSetProblem(AbstractProblem):
 
         self.check_atributes(params.variables, params.dict_node_neighbors)
 
+        # Semi DD: masks used by connection_function, computed for one connection position at a time.
+        self._connection_position: int = None
+        self._suffix_mask: bitarray = None
+        self._prefix_neighbors: list[bitarray] = []
+
 
     def sort_variables(self, variables: list[tuple['Variable', 'Domain']]) -> list[str]:
         return sorted(
@@ -92,6 +97,41 @@ class IndependentSetProblem(AbstractProblem):
         scratch_state[0] &= ~self.node_neighbors[variable_index]
         scratch_state[0][variable_index] = False
         return True
+
+    def connection_function(self, forward_state: 'State', variable_index: int, variable_value: int, backward_state: 'State') -> bool:
+        '''
+        The backward state mirrors the forward one (default backward transition): the vertices still
+        selectable given the suffix. The connection vertex must be selectable from both sides, and there
+        is an edge between prefix and suffix iff some suffix vertex blocked by the prefix has all its
+        prefix neighbors blocked by the suffix.
+        '''
+        if variable_value == 1 and not (forward_state[variable_index] and backward_state[variable_index]):
+            return False
+        if self._connection_position != variable_index:
+            self._compute_connection_masks(variable_index)
+        prefix_neighbors: list[bitarray] = self._prefix_neighbors
+        for vertex in (~forward_state & self._suffix_mask).search(1):
+            if not (prefix_neighbors[vertex] & backward_state).any():
+                return False
+        return True
+
+    def _compute_connection_masks(self, connection_position: int) -> None:
+        '''
+        Computes the masks for a connection at the given position: the suffix (positions after it) and,
+        for every vertex, its neighbors in the prefix (positions before it).
+
+        Parameters:
+        - connection_position (int): Position of the connection variable.
+        '''
+        n: int = len(self.node_neighbors)
+        prefix_mask: bitarray = bitarray(n)
+        prefix_mask.setall(False)
+        prefix_mask[:connection_position] = True
+        self._suffix_mask = bitarray(n)
+        self._suffix_mask.setall(False)
+        self._suffix_mask[connection_position + 1:] = True
+        self._prefix_neighbors = [neighbors & prefix_mask for neighbors in self.node_neighbors]
+        self._connection_position = connection_position
 
     def get_priority_for_discard_node(self, state: 'State') -> int:
         '''

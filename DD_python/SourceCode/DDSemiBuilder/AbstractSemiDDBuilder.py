@@ -49,10 +49,13 @@ class AbstractSemiDDBuilder(ABC):
         self._variables_index: list[int] = [problem.name_to_index[name] for name in self._variables]
         self._variables_domain: list[list[int]] = [problem.variables_domain[name] for name in self._variables]
         self._map_of_states: dict[str, Node] = {}
-        self._scratch_state: list = [problem.get_state_copy(problem.initial_state)]
         self.connect_layer: int = problem.connect_layer
 
-        self._initialize_graphs(problem.initial_state, problem.get_initial_backward_state())
+        initial_backward_state: 'State' = problem.get_initial_backward_state()
+        self._scratch_state: list = [problem.get_state_copy(problem.initial_state)]
+        self._backward_scratch_state: list = [problem.get_state_copy(initial_backward_state)]
+
+        self._initialize_graphs(problem.initial_state, initial_backward_state)
 
     def _check_problem_supports_semi_dd(self, problem: AbstractProblem) -> None:
         '''
@@ -146,7 +149,7 @@ class AbstractSemiDDBuilder(ABC):
         map_of_states: dict[str, Node] = self._map_of_states
         variable_index: int = self._variables_index[variable_id]
         domain: list[int] = self._variables_domain[variable_id]
-        scratch_state: list = self._scratch_state
+        scratch_state: list = self._backward_scratch_state if is_lower_graph else self._scratch_state
         get_state_as_string = self._problem.get_state_as_string
 
         for previous_node in graph.structure[-2]:

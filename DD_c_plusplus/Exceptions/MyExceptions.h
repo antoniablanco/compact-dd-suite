@@ -95,4 +95,16 @@ private:
 
 };
 
+/**
+ * @brief Exception thrown when the instance is known to have no feasible solution before building
+ * any decision diagram (e.g. a set cover restriction that no variable covers).
+ */
+class InfeasibleInstance : public exception {
+public:
+    InfeasibleInstance(const string& message = "The instance has no feasible solution");
+    const char* what() const noexcept override;
+private:
+    string message;
+};
+
 #endif //TEMPLATETYPE_MYEXCEPTIONS_H
