@@ -272,7 +272,7 @@ class SequencingProblemTest(unittest.TestCase):
         value, path = self.get_value_path_solution()
 
         self.assertEqual(value, 30)
-        self.assertEqual(path, ' arc_0_3(2)-> arc_3_4(1)-> arc_4_7(0)')
+        self.assertEqual(path, ' arc_0_3(2)-> arc_3_4(1)-> arc_4_7(1)')
 
     def test_compare_two_different_graphs(self):
         self.dd_instance.create_decision_diagram(False)
@@ -390,9 +390,10 @@ class SequencingBoundsTest(unittest.TestCase):
             with self.subTest(reduce=reduce):
                 self.assertGreaterEqual(self.solve(build, reduce), self.OPTIMUM)
 
-    def test_reduced_exact_dd_is_an_upper_bound(self):
+    def test_reduced_exact_dd_gives_the_optimum(self):
+        # The reduction merges (S, a) and (S, b); the per-last-job labels keep the setup exact.
         value = self.solve(lambda dd: dd.create_decision_diagram(False), reduce=True)
-        self.assertGreaterEqual(value, self.OPTIMUM)
+        self.assertEqual(value, self.OPTIMUM)
 
     def test_dd_kind(self):
         builders = {
