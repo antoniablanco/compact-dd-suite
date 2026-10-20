@@ -2,7 +2,7 @@
 
 # Job name
 #SBATCH --job-name=dd-batch-python
-#SBATCH --output=/home1/%u/dd-suite-results/salidas/python/salida_semi_python.txt
+#SBATCH --output=/home1/%u/compact-dd-suite-results/salidas/python/salida_semi_python.txt
 #SBATCH --partition=gpus
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=5
@@ -17,17 +17,17 @@ echo "Current working directory at start:"
 pwd
 
 # Create the folders if they do not exist
-mkdir -p "$HOME/dd-suite-results/results/python"
-mkdir -p "$HOME/dd-suite-results/timeout_log/python"
+mkdir -p "$HOME/compact-dd-suite-results/results/python"
+mkdir -p "$HOME/compact-dd-suite-results/timeout_log/python"
 
-cd "$HOME/dd-suite-dev/DD_python" || { echo "❌ Directory not found"; exit 1; }
+cd "$HOME/compact-dd-suite/DD_python" || { echo "❌ Directory not found"; exit 1; }
 
 echo "Changed to directory:"
 pwd
 sleep 1
 
 
-LOG_TIMEOUT="$HOME/dd-suite-results/timeout_log/python/timeout_log_python_$(date '+%d_%m_%Y_%H-%M-%S').txt"
+LOG_TIMEOUT="$HOME/compact-dd-suite-results/timeout_log/python/timeout_log_python_$(date '+%d_%m_%Y_%H-%M-%S').txt"
 MAX_PARALLEL=5  # Maximum number of parallel processes, must equal --cpus-per-task
 MAX_TIMEOUT=5m # Maximum wait time per process (s: seconds, m: minutes, h: hours)
 pids=()
@@ -43,7 +43,7 @@ if [[ -n "$SEMI" ]]; then # There is no grouping sMDD
 fi
 MODES=("Reduce" "NoReduce")
 WIDTHS=(500 1000 2000 5000 10000 20000)
-OUTPUT_FILE="$HOME/dd-suite-results/results/python/results_python_semi${SEMI:+_semi}_$(date '+%d_%m_%Y_%H-%M-%S').csv"
+OUTPUT_FILE="$HOME/compact-dd-suite-results/results/python/results_python_semi${SEMI:+_semi}_$(date '+%d_%m_%Y_%H-%M-%S').csv"
 
 
 for problem in "${PROBLEMS[@]}"; do
@@ -55,7 +55,7 @@ for problem in "${PROBLEMS[@]}"; do
             objective="Max"
             ;;
     esac
-    mapfile -t FILES < <(ls $HOME/dd-suite-dev/DataInstances/$problem/Standard/*.txt | sort -V) # Load the files and sort them in order natural
+    mapfile -t FILES < <(ls $HOME/compact-dd-suite/DataInstances/$problem/Standard/*.txt | sort -V) # Load the files and sort them in order natural
     for file_path in "${FILES[@]}"; do
         file="${file_path#../}"
 

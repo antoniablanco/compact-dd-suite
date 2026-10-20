@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH --job-name=soc-table2-python
-#SBATCH --output=/home1/%u/dd-suite-results/salidas/python/salida_soc_table2_relax.txt
+#SBATCH --output=/home1/%u/compact-dd-suite-results/salidas/python/salida_soc_table2_relax.txt
 #SBATCH --partition=gpus
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=10
@@ -14,30 +14,30 @@ conda activate py3.12.9 || { echo "Error al activar conda env"; exit 1; }
 echo "Working directory: $(pwd)"
 
 # Create the result folders
-mkdir -p "$HOME/dd-suite-results/results/python"
-mkdir -p "$HOME/dd-suite-results/timeout_log/python"
-mkdir -p "$HOME/dd-suite-results/salidas/python"
+mkdir -p "$HOME/compact-dd-suite-results/results/python"
+mkdir -p "$HOME/compact-dd-suite-results/timeout_log/python"
+mkdir -p "$HOME/compact-dd-suite-results/salidas/python"
 
-cd "$HOME/dd-suite-dev/DD_python" || { echo "DD_python directory not found"; exit 1; }
+cd "$HOME/compact-dd-suite/DD_python" || { echo "DD_python directory not found"; exit 1; }
 echo "Running from: $(pwd)"
 
 TIMESTAMP=$(date '+%d_%m_%Y_%H-%M-%S')
-LOG_TIMEOUT="$HOME/dd-suite-results/timeout_log/python/timeout_soc_table2_${TIMESTAMP}.txt"
-RESULTS_DIR="$HOME/dd-suite-results/results/python"
+LOG_TIMEOUT="$HOME/compact-dd-suite-results/timeout_log/python/timeout_soc_table2_${TIMESTAMP}.txt"
+RESULTS_DIR="$HOME/compact-dd-suite-results/results/python"
 
 MAX_PARALLEL=5    # Must match --cpus-per-task
 MAX_TIMEOUT=90m   # OS backstop > Gurobi TimeLimit (1h, same as the paper) + margin for the DD build and the CSV write
 
 # Load the 90 Standard SOCKnapsack instances, sorted
-mapfile -t FILES < <(ls "$HOME/dd-suite-dev/DataInstances/SOCKnapsack/Standard"/*.txt | sort -V)
+mapfile -t FILES < <(ls "$HOME/compact-dd-suite/DataInstances/SOCKnapsack/Standard"/*.txt | sort -V)
 echo "Instances found: ${#FILES[@]}"
 
 SEMI="-Semi" # "-Semi" builds the sMDD (RelaxPriority only); set it to "" for the standard MDD
 
 # Paths relative to the source_directory of the Python mains (DD_python/)
-# source_directory = $HOME/dd-suite-dev/DD_python => ../../dd-suite-results/...
-OUTPUT_GUROBI="../../dd-suite-results/results/python/soc_gurobi_${TIMESTAMP}.csv"
-OUTPUT_CUTS="../../dd-suite-results/results/python/soc_cuts${SEMI:+_semi}_${TIMESTAMP}.csv"
+# source_directory = $HOME/compact-dd-suite/DD_python => ../../compact-dd-suite-results/...
+OUTPUT_GUROBI="../../compact-dd-suite-results/results/python/soc_gurobi_${TIMESTAMP}.csv"
+OUTPUT_CUTS="../../compact-dd-suite-results/results/python/soc_cuts${SEMI:+_semi}_${TIMESTAMP}.csv"
 
 # Variant definition: "variant_name|script|flags|output_file"
 # Relaxed DD with width 4000, same as the paper (Castro, Cire & Beck).

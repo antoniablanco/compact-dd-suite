@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #SBATCH --job-name=dd-exact-python
-#SBATCH --output=/home1/%u/dd-suite-results/salidas/python/salida_semi_exact_python.txt
+#SBATCH --output=/home1/%u/compact-dd-suite-results/salidas/python/salida_semi_exact_python.txt
 #SBATCH --partition=gpus
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=5
@@ -11,15 +11,15 @@
 source ~/.bashrc
 conda activate py3.12.9 || { echo "❌ Failed to activate the conda env"; exit 1; }
 
-mkdir -p "$HOME/dd-suite-results/results/python"
-mkdir -p "$HOME/dd-suite-results/timeout_log/python"
+mkdir -p "$HOME/compact-dd-suite-results/results/python"
+mkdir -p "$HOME/compact-dd-suite-results/timeout_log/python"
 
-cd "$HOME/dd-suite-dev/DD_python" || { echo "❌ Directory not found"; exit 1; }
+cd "$HOME/compact-dd-suite/DD_python" || { echo "❌ Directory not found"; exit 1; }
 echo "Directory: $(pwd)"
 
 SEMI="-Semi" # "-Semi" builds the sMDD; set it to "" for the standard MDD
-LOG_TIMEOUT="$HOME/dd-suite-results/timeout_log/python/timeout_log_exact_python${SEMI:+_semi}_$(date '+%d_%m_%Y_%H-%M-%S').txt"
-OUTPUT_FILE="$HOME/dd-suite-results/results/python/results_semi_exact_python${SEMI:+_semi}_$(date '+%d_%m_%Y_%H-%M-%S').csv"
+LOG_TIMEOUT="$HOME/compact-dd-suite-results/timeout_log/python/timeout_log_exact_python${SEMI:+_semi}_$(date '+%d_%m_%Y_%H-%M-%S').txt"
+OUTPUT_FILE="$HOME/compact-dd-suite-results/results/python/results_semi_exact_python${SEMI:+_semi}_$(date '+%d_%m_%Y_%H-%M-%S').csv"
 MAX_PARALLEL=5
 MAX_TIMEOUT=60m
 pids=()
@@ -65,7 +65,7 @@ for problem in "${PROBLEMS[@]}"; do
     read -ra dirs <<< "${DIRECTORIOS[$problem]}"
 
     for subdir in "${dirs[@]}"; do
-        instance_dir="$HOME/dd-suite-dev/DataInstances/$problem/$subdir"
+        instance_dir="$HOME/compact-dd-suite/DataInstances/$problem/$subdir"
         [ -d "$instance_dir" ] || continue
         mapfile -t FILES < <(ls "$instance_dir"/*.txt 2>/dev/null | sort -V)
 

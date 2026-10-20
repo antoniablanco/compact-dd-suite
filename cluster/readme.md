@@ -9,23 +9,23 @@ This folder contains the `submit` scripts required to send jobs to the cluster. 
 ### 1. Expected location of `.sh` files
 
 The scripts do not depend on the working directory: every path inside them is absolute
-(`$HOME/dd-suite-dev/...` for the code and `$HOME/dd-suite-results/...` for the outputs), and
+(`$HOME/compact-dd-suite/...` for the code and `$HOME/compact-dd-suite-results/...` for the outputs), and
 each script `cd`s into the implementation folder it needs. They can therefore be submitted from
 anywhere, e.g.
 
-`sbatch ./dd-suite-dev/cluster/dry_run_submit.sh`
+`sbatch ./compact-dd-suite/cluster/dry_run_submit.sh`
 
-What they do assume is that the repository is cloned at `$HOME/dd-suite-dev`. Update the paths
+What they do assume is that the repository is cloned at `$HOME/compact-dd-suite`. Update the paths
 inside the `.sh` files if it lives somewhere else.
 
 ---
 
 ### 2. Required folder structure
 
-The outputs go to `$HOME/dd-suite-results/`, with this structure:
+The outputs go to `$HOME/compact-dd-suite-results/`, with this structure:
 
 ```
-$HOME/dd-suite-results/
+$HOME/compact-dd-suite-results/
 ├── results/
 │   ├── cpp/
 │   ├── python/
