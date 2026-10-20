@@ -69,6 +69,18 @@ class SequencingProblem(AbstractProblem):
         scheduled, _ = state
         return self._scheduled_processing(scheduled)
 
+    def get_backward_priority_for_discard_node(self, state: 'State') -> int:
+        '''
+        Discard suffixes with the least committed processing first. The upper graph keeps the
+        prefixes with the shortest jobs, so the lower graph keeps the suffixes with the longest ones:
+        keeping the shortest in both halves leaves no disjoint pair. Ties in processing time are
+        broken towards the highest job ids, since the upper graph keeps the lowest ones (the first
+        created); otherwise both halves can keep the same tied job.
+        '''
+        suffix_scheduled, _ = state
+        id_sum_bound: int = self.n_jobs * (self.n_jobs - 1) // 2 + 1
+        return -(self._scheduled_processing(suffix_scheduled) * id_sum_bound + sum(suffix_scheduled))
+
     def get_priority_for_merge_nodes(self, node_id: int, state: 'State') -> int:
         '''
         Merge nodes with the most committed processing first.

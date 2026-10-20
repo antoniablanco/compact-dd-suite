@@ -308,6 +308,10 @@ class AbstractProblem(ABC):
         Defines whether a node of the upper graph can be connected to a node of the lower graph
         through an arc of the connection layer. Required by every semi DD builder.
 
+        For a relaxed sMDD it must be monotone with respect to merge_operator (forward state) and
+        backward_merge_operator (backward state): if any of the merged states connects, the merged
+        state must connect too.
+
         Parameters:
         - forward_state('State'): State of the node in the last layer of the upper graph. *READ IMPORTANT
         - variable_id(int): The identifier of the connection variable.
@@ -318,3 +322,48 @@ class AbstractProblem(ABC):
         - bool: True if the prefix and suffix can be joined with that value, False otherwise.
         '''
         raise NotImplementedError("The method connection_function has not been implemented yet")
+
+    def get_backward_priority_for_discard_node(self, state: 'State') -> int:
+        '''
+        Defines the priority for discarding nodes of the lower graph of a restricted semi decision
+        diagram. Defaults to get_priority_for_discard_node; override it when that priority is not
+        meaningful for the backward state.
+
+        Parameters:
+        - state('State'): The backward state of the node to order. *READ IMPORTANT
+
+        Returns:
+        - int: The priority value of the state.
+        '''
+        return self.get_priority_for_discard_node(state)
+
+    def get_backward_priority_for_merge_nodes(self, node_id: int, state: 'State') -> int:
+        '''
+        Defines the priority for merging nodes of the lower graph of a relaxed semi decision
+        diagram. Defaults to get_priority_for_merge_nodes; override it when that priority is not
+        meaningful for the backward state.
+
+        Parameters:
+        - node_id(int): The identifier of the node to order.
+        - state('State'): The backward state of the node to order. *READ IMPORTANT
+
+        Returns:
+        - int: The priority value of the node.
+        '''
+        return self.get_priority_for_merge_nodes(node_id, state)
+
+    def backward_merge_operator(self, state_one: 'State', state_two: 'State') -> 'State':
+        '''
+        Defines a new backward state when two nodes of the lower graph of a relaxed semi decision
+        diagram are merged. Defaults to merge_operator; override it when the backward state does
+        not merge like the forward state. The merged state must keep every suffix feasible for any
+        of the two states.
+
+        Parameters:
+        - state_one(State): The first backward state to merge. *READ IMPORTANT
+        - state_two(State): The second backward state to merge. *READ IMPORTANT
+
+        Returns:
+        - State: The resulting backward state from the merge.
+        '''
+        return self.merge_operator(state_one, state_two)

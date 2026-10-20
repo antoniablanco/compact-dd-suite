@@ -44,7 +44,18 @@ class KnapsackProblem(AbstractProblem):
         - state ('State'): State of the node.
         '''
         return -state
-    
+
+    def get_backward_priority_for_discard_node(self, state: 'State') -> int:
+        '''
+        Get the priority for discard a node of the lower graph: the heaviest suffixes are discarded
+        first. Keeping the heaviest ones in both halves leaves no pair that fits together, while the
+        empty suffix (weight 0) is always kept and connects with every prefix.
+
+        Parameters:
+        - state ('State'): Weight of the suffix.
+        '''
+        return state
+
     def get_priority_for_merge_nodes(self, id: int, state: 'State') -> int:
         '''
         Get the priority for merge two nodes.

@@ -110,6 +110,21 @@ def connect_layer_statistic(dd_instance: 'DD') -> str:
     connect_layer: int = dd_instance.get_connect_layer()
     return 'na' if connect_layer is None else str(connect_layer)
 
+def create_semi_dd(dd_instance: 'DD', gui_structure: 'GuiStructure | GuiCutsStructure') -> None:
+    '''
+    Sets the connection layer, if one was given, and builds the semi decision diagram of the
+    requested DD type (exact, restricted or relaxed by priority).
+    '''
+    if gui_structure.connect_layer is not None:
+        dd_instance.problem.connect_layer = gui_structure.connect_layer
+
+    if gui_structure.dd_type == DDType.RESTRICTED:
+        dd_instance.create_semi_restricted_decision_diagram(gui_structure.maximum_width, gui_structure.verbose)
+    elif gui_structure.dd_type == DDType.RELAX_PRIORITY:
+        dd_instance.create_semi_relax_priority_decision_diagram(gui_structure.maximum_width, gui_structure.verbose)
+    else:  # DDType.EXACT
+        dd_instance.create_semi_decision_diagram(gui_structure.verbose)
+
 def create_and_solve_dd(problem_instance: 'AbstractProblem', objective_weights: list[int], gui_structure: GuiStructure, solver_class=None) -> None:
     '''
     Create and solve a decision diagram for a given problem instance.
@@ -119,9 +134,7 @@ def create_and_solve_dd(problem_instance: 'AbstractProblem', objective_weights: 
     headers: str = "File_name,Problem type,Variables number,DD Type,Max Width,Is Reduced,Objective Type,Optimization Value,Construction Time,Reduce Time,Solution Time,Number Node,Number Arcs,Actual Max Width,Sort,Semi,Connect Layer"
 
     if gui_structure.semi_flag:
-        if gui_structure.connect_layer is not None:
-            problem_instance.connect_layer = gui_structure.connect_layer
-        dd_instance.create_semi_decision_diagram(gui_structure.verbose)
+        create_semi_dd(dd_instance, gui_structure)
 
     elif gui_structure.dd_type == DDType.EXACT:
         dd_instance.create_decision_diagram(gui_structure.verbose)
@@ -208,9 +221,7 @@ def _build_dd_for_cuts(dd_instance: 'DD', gui_cuts_structure: GuiCutsStructure) 
     Restricted/relaxed are width-limited; exact ignores the width. The DD is reduced afterwards.
     '''
     if gui_cuts_structure.semi_flag:
-        if gui_cuts_structure.connect_layer is not None:
-            dd_instance.problem.connect_layer = gui_cuts_structure.connect_layer
-        dd_instance.create_semi_decision_diagram(gui_cuts_structure.verbose)
+        create_semi_dd(dd_instance, gui_cuts_structure)
     elif gui_cuts_structure.dd_type == DDType.RESTRICTED:
         dd_instance.create_restricted_decision_diagram(gui_cuts_structure.maximum_width, gui_cuts_structure.verbose)
     elif gui_cuts_structure.dd_type == DDType.RELAX_PRIORITY:

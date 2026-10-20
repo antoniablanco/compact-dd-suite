@@ -26,7 +26,7 @@ def main():
         print("\t\t-RelaxPriority   Build a relaxed DD merging by priority (requires -Width_)")
         print("\t\t-RelaxGrouping   Build a relaxed DD merging in groups by priority difference (requires -Width_)")
         print("\t\t-Width_<n>       Maximum width per layer for restricted/relaxed DD")
-        print("\t\t-Semi            Build a semi decision diagram (sMDD); only with -Exact")
+        print("\t\t-Semi            Build a semi decision diagram (sMDD); with -Exact, -Restricted or -RelaxPriority")
         print("\t\t-ConnectLayer_<k> Connection layer of the sMDD, in [1, N] (default: ceil(N/2))")
         print("\n\tOptions:")
         print("\t\t-CutStrengthening Strengthen the cuts")
@@ -101,9 +101,9 @@ def main():
         print(f"Error: -{dd_type.value} requires a width. Add -Width_<n> (e.g. -Width_4000).")
         sys.exit(1)
 
-    # Only the exact sMDD exists; the connection layer is meaningless without -Semi.
-    if semi_flag and dd_type != DDType.EXACT:
-        print(f"Error: -Semi is only available with -Exact (got -{dd_type.value}).")
+    # There is no grouping sMDD; the connection layer is meaningless without -Semi.
+    if semi_flag and dd_type == DDType.RELAX_GROUPING:
+        print(f"Error: -Semi is only available with -Exact, -Restricted or -RelaxPriority (got -{dd_type.value}).")
         sys.exit(1)
     if connect_layer is not None and not semi_flag:
         print("Error: -ConnectLayer_<k> requires -Semi.")

@@ -4,6 +4,8 @@ from SourceCode.DDBuilder.RestrictedDDBuilder.RestrictedDDBuilder import Restric
 from SourceCode.DDBuilder.RelaxedDDBuilder.RelaxedPriorityDDBuilder import RelaxedPriorityDDBuilder
 from SourceCode.DDBuilder.RelaxedDDBuilder.RelaxedGroupingDDBuilder import RelaxedGroupingDDBuilder
 from SourceCode.DDSemiBuilder.ExactSemiDDBuilder.ExactSemiDDBuilder import ExactSemiDDBuilder
+from SourceCode.DDSemiBuilder.RestrictedSemiDDBuilder.RestrictedSemiDDBuilder import RestrictedSemiDDBuilder
+from SourceCode.DDSemiBuilder.RelaxedSemiDDBuilder.RelaxedPrioritySemiDDBuilder import RelaxedPrioritySemiDDBuilder
 from SourceCode.DDSemiBuilder.SemiDDReducer.SemiDDReducer import SemiDDReducer
 from SourceCode.GraphVisualization.GraphFile import GraphFile
 from Exceptions.MyExceptions import GraphAlreadyExists, NoGraphFound
@@ -132,6 +134,50 @@ class DD():
         end_time: float = time.time()
         self._dd_builder_time = round(end_time - start_time, 4)
         print(f"Semi decision diagram creation completed.")
+
+    def create_semi_restricted_decision_diagram(self, max_width: int, verbose: bool=False) -> None:
+        '''
+        Creates the restricted semi decision diagram, keeping at most max_width nodes in every
+        layer of the upper and lower graphs.
+
+        Parameters:
+        max_width (int): Maximum width allowed for every layer of the decision diagram.
+        verbose (bool): If True, prints additional information during the creation process.
+        '''
+        if self._graph_DD is not None:
+            raise GraphAlreadyExists()
+
+        print("\nStarting the creation of the restricted semi decision diagram...")
+        start_time: float = time.time()
+        self.semi_dd_builder: 'RestrictedSemiDDBuilder' = RestrictedSemiDDBuilder(self.problem, max_width)
+        self._graph_DD: 'Graph' = self.semi_dd_builder.get_decision_diagram(verbose)
+        self._dd_kind = 'restricted'
+        self._connect_layer = self.semi_dd_builder.connect_layer
+        end_time: float = time.time()
+        self._dd_builder_time = round(end_time - start_time, 4)
+        print(f"Restricted semi decision diagram creation completed.")
+
+    def create_semi_relax_priority_decision_diagram(self, max_width: int, verbose: bool=False) -> None:
+        '''
+        Creates the relaxed semi decision diagram, merging nodes by priority in every layer of the
+        upper and lower graphs that exceeds max_width.
+
+        Parameters:
+        max_width (int): Maximum width allowed for every layer of the decision diagram.
+        verbose (bool): If True, prints additional information during the creation process.
+        '''
+        if self._graph_DD is not None:
+            raise GraphAlreadyExists()
+
+        print("\nStarting the creation of the relaxed semi decision diagram...")
+        start_time: float = time.time()
+        self.semi_dd_builder: 'RelaxedPrioritySemiDDBuilder' = RelaxedPrioritySemiDDBuilder(self.problem, max_width)
+        self._graph_DD: 'Graph' = self.semi_dd_builder.get_decision_diagram(verbose)
+        self._dd_kind = 'relaxed'
+        self._connect_layer = self.semi_dd_builder.connect_layer
+        end_time: float = time.time()
+        self._dd_builder_time = round(end_time - start_time, 4)
+        print(f"Relaxed semi decision diagram creation completed.")
 
     def reduce_decision_diagram(self, verbose: bool=False) -> None:
         '''

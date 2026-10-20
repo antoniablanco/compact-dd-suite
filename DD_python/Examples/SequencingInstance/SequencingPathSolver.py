@@ -127,6 +127,11 @@ class SequencingPathSolver:
 
     def _extract_solution(self, dp_data, dp_arcs) -> None:
         terminal_id = self._graph.structure[-1][0].get_id()
+        if dp_data[terminal_id] is None:
+            # No root-terminal path (e.g. an empty restricted sMDD): same value as ShortestLongestPath.
+            self._solution.value = float("-inf") if self._objective == "max" else float("inf")
+            self._solution.path_arcs, self._solution.path_print = [], ""
+            return
         cost_by_last_job = dp_data[terminal_id].cost_by_last_job
         last_job = min(cost_by_last_job, key=cost_by_last_job.get)
         optimal_cost = cost_by_last_job[last_job]
