@@ -190,7 +190,22 @@ class SetCoverProblem(AbstractProblem):
         - int: Priority for discard the node.
         '''
         return state.count(True)
-    
+
+    def get_backward_priority_for_discard_node(self, state: 'State') -> int:
+        '''
+        Get the priority for discard a node of the lower graph: the suffixes that cover the most
+        restrictions are discarded first. The upper graph keeps the prefixes that cover the most,
+        so the lower one keeps the suffixes that leave the most to the prefix (the cheapest ones);
+        keeping the ones that cover the most in both halves covers most restrictions twice.
+
+        Parameters:
+        - state ('State'): Restrictions not covered by the suffix.
+
+        Returns:
+        - int: Priority for discard the node.
+        '''
+        return -state.count(True)
+
     def get_priority_for_merge_nodes(self, node_id: int, state: 'State') -> int:
         '''
         Get the priority for merge two nodes.
@@ -202,6 +217,21 @@ class SetCoverProblem(AbstractProblem):
         - int: Priority for merge the nodes.
         '''
         return state.count()
+
+    def get_backward_priority_for_merge_nodes(self, node_id: int, state: 'State') -> int:
+        '''
+        Get the priority for merge two nodes of the lower graph: the suffixes that cover the most
+        restrictions are merged first. Merging the ones that cover the least (the cheapest ones)
+        hands them the coverage of the others, and the dual bound falls to the trivial 0.
+
+        Parameters:
+        - node_id (int): Id of the node.
+        - state ('State'): Restrictions not covered by the suffix.
+
+        Returns:
+        - int: Priority for merge the nodes.
+        '''
+        return -state.count(True)
 
     def merge_operator(self, state_one: 'State', state_two: 'State') -> 'State':
         '''

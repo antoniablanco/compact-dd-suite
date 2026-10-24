@@ -196,6 +196,18 @@ class ProblemsSemiDDWidthTest(unittest.TestCase):
         problem = SequencingProblem(params)
         self.assert_restricted_is_never_empty(problem, problem.weights, "min", SequencingPathSolver)
 
+    def test_independent_set_restricted_is_never_empty(self):
+        # The backward discard keeps the suffixes that block no prefix vertex, which connect with every prefix.
+        params = IndependentSetStructure(os.path.join(INSTANCES_DIR, "IndependentSet", "Standard", "johnson8-2-4.txt"))
+        problem = IndependentSetProblem(params)
+        self.assert_restricted_is_never_empty(problem, problem.reorder_to_dd_order(params.objective_weights), "max")
+
+    def test_socknapsack_restricted_is_never_empty(self):
+        # The backward discard keeps the empty suffix, which connects with every prefix.
+        params = SOCKnapsackInstance(os.path.join(INSTANCES_DIR, "SOCKnapsack", "knapsack_n5m2o5b5_2.txt"))
+        problem = SOCKnapsackProblem(params, 0)
+        self.assert_restricted_is_never_empty(problem, problem.reorder_to_dd_order(params.objective_weights), "max")
+
     def test_independent_set(self):
         params = IndependentSetStructure(os.path.join(INSTANCES_DIR, "IndependentSet", "Standard", "johnson8-2-4.txt"))
         problem = IndependentSetProblem(params)

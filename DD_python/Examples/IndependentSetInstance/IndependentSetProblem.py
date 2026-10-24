@@ -144,7 +144,22 @@ class IndependentSetProblem(AbstractProblem):
         - int: Priority for discard the node.
         '''
         return state.count(True)
-    
+
+    def get_backward_priority_for_discard_node(self, state: 'State') -> int:
+        '''
+        Get the priority for discard a node of the lower graph: the suffixes that block the fewest
+        prefix vertices are kept. Keeping the ones that block the most in both halves leaves no pair
+        without an edge between them, while the suffixes that block no prefix vertex (the empty one
+        among them) have the most selectable vertices, are always kept and connect with every prefix.
+
+        Parameters:
+        - state ('State'): Vertices still selectable given the suffix.
+
+        Returns:
+        - int: Priority for discard the node.
+        '''
+        return -state.count(True)
+
     def get_priority_for_merge_nodes(self, node_id: int, state: 'State') -> int:
         '''
         Get the priority for merge two nodes.

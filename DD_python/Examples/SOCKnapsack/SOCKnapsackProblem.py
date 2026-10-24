@@ -187,6 +187,18 @@ class SOCKnapsackProblem(AbstractProblem):
             return int(state[0])
         return -int(state[0] + self.omega * math.sqrt(state[1]))
 
+    def get_backward_priority_for_discard_node(self, state: 'State') -> int:
+        '''
+        Get the priority for discard a node of the lower graph: the heaviest suffixes are discarded
+        first. Keeping the heaviest ones in both halves leaves no pair that fits together, while the
+        empty suffix [0, 0] is always kept and connects with every prefix: thanks to the ceil, only
+        the suffixes that add nothing to the constraint share its priority 0.
+
+        Parameters:
+        - state ('State'): Backward state [linear, sqrt^2] of the suffix.
+        '''
+        return math.ceil(state[0] + self.omega * math.sqrt(state[1]))
+
     def get_priority_for_merge_nodes(self, id: int, state: 'State') -> int:
         '''
         Get the priority for merge two nodes.
