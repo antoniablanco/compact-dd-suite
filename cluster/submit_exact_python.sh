@@ -31,6 +31,7 @@ declare -A OBJECTIVE=(
     [IndependentSet]="Max"
     [SetCover]="Min"
     [SOCKnapsack]="Max"
+    [Sequencing]="Min"
 )
 
 declare -A DIRECTORIOS=(
@@ -38,6 +39,7 @@ declare -A DIRECTORIOS=(
     [IndependentSet]="Standard"
     [SetCover]="Standard"
     [SOCKnapsack]="Standard"
+    [Sequencing]="Standard"
 )
 
 PROBLEMS=("Knapsack" "IndependentSet" "SetCover" "SOCKnapsack" "Sequencing")
