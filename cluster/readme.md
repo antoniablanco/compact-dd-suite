@@ -353,6 +353,21 @@ This script runs a single test per language and is recommended to run first. It 
 
 ---
 
+## Precomputed connection layer for the sMDD: `submit_connect_layer_python.sh`
+
+Cluster test of the sMDD with the best connection layer. It runs in two steps:
+
+1. `DD_python/compute_connect_layer.py` computes, for every Standard instance, the connection layer `k*`
+   that minimizes the nodes of the exact sMDD (before pruning and reduction). It builds a full forward
+   and a full backward exact DD, so instances that hit `TIMEOUT_K` get no `k*`. Output:
+   `results/python/connect_layers_python_<date>.csv` (default `ceil(N/2)`, `k*`, nodes of both and the
+   layer widths).
+2. The sMDD (`Exact`, `Restricted`, `RelaxPriority`, with and without `-Reduce`) runs with
+   `-ConnectLayer_<k*>`; restricted and relaxed use the `k*` of the exact sMDD. Instances without `k*`
+   are skipped. Output: `results/python/results_python_semi_kopt_<date>.csv`.
+
+---
+
 ## General cluster usage and useful commands
 
 A cluster is a high-performance computing system composed of multiple connected nodes. It is managed by a **job scheduler** (such as `SLURM`) that assigns user-submitted tasks (jobs) to available nodes.
