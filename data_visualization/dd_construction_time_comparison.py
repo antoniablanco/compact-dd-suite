@@ -180,7 +180,7 @@ EXCLUDED_PROBLEM_TYPES = ['SOC Knapsack']
 
 csv_folder = './data'
 cpp_folder    = os.path.join(csv_folder, 'cpp')
-python_folder = os.path.join(csv_folder, 'python')
+python_folder = os.path.join(csv_folder, 'python', 'original')
 plots_folder  = './plots/dd_construction_time_comparison'
 archive_existing(plots_folder)
 file_timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")

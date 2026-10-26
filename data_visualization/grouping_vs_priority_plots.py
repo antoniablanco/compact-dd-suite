@@ -36,7 +36,7 @@ def archive_existing(folder):
 
 
 BASE          = os.path.dirname(os.path.abspath(__file__))
-PY_DIR        = os.path.join(BASE, "data", "python")
+PY_DIR        = os.path.join(BASE, "data", "python", "original")
 CPP_DIR       = os.path.join(BASE, "data", "cpp")
 PLOTS_DIR     = os.path.join(BASE, "plots", "grouping_vs_priority")
 archive_existing(PLOTS_DIR)

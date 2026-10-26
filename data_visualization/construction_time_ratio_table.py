@@ -27,7 +27,7 @@ def archive_existing(folder):
 # The full pipeline is documented at the bottom of this file.
 csv_folder    = './data'
 cpp_folder    = os.path.join(csv_folder, 'cpp')
-python_folder = os.path.join(csv_folder, 'python')
+python_folder = os.path.join(csv_folder, 'python', 'original')
 rust_folder   = os.path.join(csv_folder, 'rust')
 output_folder = './tables/construction_time_ratio_table'
 archive_existing(output_folder)

@@ -21,7 +21,7 @@ def archive_existing(folder):
 ### Global parameters
 # Subfolders holding the CSVs of each implementation
 cpp_folder    = './data/cpp'
-python_folder = './data/python'
+python_folder = './data/python/original'
 output_folder = './tables/soc_cuts_summary_table'
 archive_existing(output_folder)
 file_timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
