@@ -47,7 +47,7 @@ protected:
 
 TEST_F(SequencingProblemTest, TestOrderedVariables) {
     vector<string> expected = {"slot_0", "slot_1", "slot_2"};
-    ASSERT_EQ(problem_instance->ordered_variables, expected);
+    ASSERT_EQ(problem_instance->ordered_variables(), expected);
 }
 
 TEST_F(SequencingProblemTest, TestVariablesDomain) {
@@ -376,7 +376,7 @@ TEST_F(SequencingProblemTest, GetSolutionForRelaxedDD) {
 
     PathStructureSolution<SequencingState> solution = getSequencingSolution();
     double expected_value = 30;
-    string expected_path = " arc_0_3(2)-> arc_3_4(1)-> arc_4_7(0)";
+    string expected_path = " arc_0_3(2)-> arc_3_4(1)-> arc_4_7(1)";
     ASSERT_EQ(solution.value, expected_value);
     ASSERT_EQ(solution.path_print, expected_path);
 }
@@ -509,8 +509,9 @@ TEST_F(SequencingBoundsTest, RestrictedDDIsAnUpperBound) {
     }
 }
 
-TEST_F(SequencingBoundsTest, ReducedExactDDIsAnUpperBound) {
-    ASSERT_GE(solve(Build::Exact, true), OPTIMUM);
+TEST_F(SequencingBoundsTest, ReducedExactDDGivesTheOptimum) {
+    // The reduction merges (S, a) and (S, b); the per-last-job labels keep the setup exact.
+    ASSERT_EQ(solve(Build::Exact, true), OPTIMUM);
 }
 
 TEST_F(SequencingBoundsTest, DDKind) {

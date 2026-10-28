@@ -45,3 +45,8 @@ GraphAlreadyExists::GraphAlreadyExists(const char *message) : message(message) {
 const char* GraphAlreadyExists::what() const noexcept {
     return message;
 }
+
+InfeasibleInstance::InfeasibleInstance(const string& message) : message(message) {}
+const char* InfeasibleInstance::what() const noexcept {
+    return message.c_str();
+}

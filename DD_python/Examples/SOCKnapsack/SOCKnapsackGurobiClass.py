@@ -43,22 +43,6 @@ class SOCKnapsackGurobi(AbstractProblemGurobi):
             # (3) Σᵢ y[j][i]² ≤ z[j]² — second-order cone constraint per restriction j
             self.model.addConstr(quicksum(self.y[j][i]*self.y[j][i] for i in self.set_variable_length) <= self.z[j]*self.z[j])
 
-    def _get_variable_values(self, x_sol: list, dd) -> tuple[list, list]:
-        '''
-        Override: the SOCK model has auxiliary variables (y, z) not present in the DD.
-        Maps x_sol values to the DD's variables using the problem's variable name index.
-
-        Parameters:
-        - x_sol: Current LP relaxation values for self.x.
-        - dd: The DD object whose variables we need to extract.
-
-        Returns:
-        - (x_sol_dd, var_ids): values and indices aligned with the DD's variables.
-        '''
-        var_ids = dd.problem.dd_to_original_index
-        x_sol_dd = [x_sol[var_id] for var_id in var_ids]
-        return x_sol_dd, var_ids
-
     def show_results(self) -> None:
         '''
         Show the results of the model optimization.

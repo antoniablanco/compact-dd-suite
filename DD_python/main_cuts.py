@@ -26,6 +26,8 @@ def main():
         print("\t\t-RelaxPriority   Build a relaxed DD merging by priority (requires -Width_)")
         print("\t\t-RelaxGrouping   Build a relaxed DD merging in groups by priority difference (requires -Width_)")
         print("\t\t-Width_<n>       Maximum width per layer for restricted/relaxed DD")
+        print("\t\t-Semi            Build a semi decision diagram (sMDD); with -Exact, -Restricted or -RelaxPriority")
+        print("\t\t-ConnectLayer_<k> Connection layer of the sMDD, in [1, N] (default: ceil(N/2))")
         print("\n\tOptions:")
         print("\t\t-CutStrengthening Strengthen the cuts")
         print("\t\t-Verbose         Enable verbose mode")
@@ -46,6 +48,8 @@ def main():
     dd_type: DDType = DDType.EXACT
     max_width: int = 2147483646
     width_provided: bool = False
+    semi_flag: bool = False
+    connect_layer: int = None
 
     for arg in sys.argv[2:]:
         if arg == "-SetCover":
@@ -83,6 +87,10 @@ def main():
             continuous_flag = True
         elif arg.startswith("-Output_"):
             output_name = arg[8:]
+        elif arg == "-Semi":
+            semi_flag = True
+        elif arg.startswith("-ConnectLayer_"):
+            connect_layer = int(arg[14:])
 
     if problem_class == ProblemClass.NONE:
         print("Error: A valid problem class was not specified.")
@@ -91,6 +99,14 @@ def main():
     # Restricted/Relaxed DDs are width-limited and require an explicit width.
     if dd_type in (DDType.RESTRICTED, DDType.RELAX_PRIORITY, DDType.RELAX_GROUPING) and not width_provided:
         print(f"Error: -{dd_type.value} requires a width. Add -Width_<n> (e.g. -Width_4000).")
+        sys.exit(1)
+
+    # There is no grouping sMDD; the connection layer is meaningless without -Semi.
+    if semi_flag and dd_type == DDType.RELAX_GROUPING:
+        print(f"Error: -Semi is only available with -Exact, -Restricted or -RelaxPriority (got -{dd_type.value}).")
+        sys.exit(1)
+    if connect_layer is not None and not semi_flag:
+        print("Error: -ConnectLayer_<k> requires -Semi.")
         sys.exit(1)
 
     # Default to the first valid cut for the selected problem
@@ -120,6 +136,9 @@ def main():
     print(f"Strength Cuts: {'Yes' if cut_strengthening_flag else 'No'}")
     print(f"Verbose: {'Yes' if verbose_flag else 'No'}")
     print(f"Continuous: {'Yes' if continuous_flag else 'No'}")
+    print(f"Semi: {'Yes' if semi_flag else 'No'}")
+    if semi_flag:
+        print(f"Connect Layer: {connect_layer if connect_layer is not None else 'default (ceil(N/2))'}")
 
     gui_cuts_structure = GuiCutsStructure(
         input_file_path=file_path,
@@ -131,6 +150,8 @@ def main():
         continuous_flag=continuous_flag,
         dd_type=dd_type,
         maximum_width=max_width,
+        semi_flag=semi_flag,
+        connect_layer=connect_layer,
     )
 
     run_gurobi_dd(gui_cuts_structure)

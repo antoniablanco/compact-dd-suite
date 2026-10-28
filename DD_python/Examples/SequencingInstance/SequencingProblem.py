@@ -32,6 +32,28 @@ class SequencingProblem(AbstractProblem):
         scratch_state[0] = (scheduled | {job_id}, job_id)
         return True
 
+    def backward_transition_function(self, next_state: 'State', variable_index: int, job_id: int, scratch_state: list) -> bool:
+        '''
+        Backward state (jobs of the suffix, -1). Unlike the forward state, it does not keep the
+        first job of the suffix: the connection only needs the set, and keeping it would split
+        equivalent nodes. The -1 keeps the forward state shape for get_state_as_string.
+        '''
+        suffix_scheduled, _ = next_state
+
+        if job_id in suffix_scheduled:
+            return False
+
+        scratch_state[0] = (suffix_scheduled | {job_id}, -1)
+        return True
+
+    def connection_function(self, forward_state: 'State', variable_index: int, job_id: int, backward_state: 'State') -> bool:
+        '''
+        The connection job and the jobs of the prefix and the suffix must all be different.
+        '''
+        scheduled, _ = forward_state
+        suffix_scheduled, _ = backward_state
+        return job_id not in scheduled and job_id not in suffix_scheduled and scheduled.isdisjoint(suffix_scheduled)
+
     def _scheduled_processing(self, scheduled: frozenset) -> int:
         '''
         Sum of processing times of the jobs already scheduled. Used as a
@@ -46,6 +68,18 @@ class SequencingProblem(AbstractProblem):
         '''
         scheduled, _ = state
         return self._scheduled_processing(scheduled)
+
+    def get_backward_priority_for_discard_node(self, state: 'State') -> int:
+        '''
+        Discard suffixes with the least committed processing first. The upper graph keeps the
+        prefixes with the shortest jobs, so the lower graph keeps the suffixes with the longest ones:
+        keeping the shortest in both halves leaves no disjoint pair. Ties in processing time are
+        broken towards the highest job ids, since the upper graph keeps the lowest ones (the first
+        created); otherwise both halves can keep the same tied job.
+        '''
+        suffix_scheduled, _ = state
+        id_sum_bound: int = self.n_jobs * (self.n_jobs - 1) // 2 + 1
+        return -(self._scheduled_processing(suffix_scheduled) * id_sum_bound + sum(suffix_scheduled))
 
     def get_priority_for_merge_nodes(self, node_id: int, state: 'State') -> int:
         '''

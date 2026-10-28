@@ -24,7 +24,7 @@ def archive_existing(folder):
 
 BASE     = os.path.dirname(os.path.abspath(__file__))
 CPP_DIR  = os.path.join(BASE, "data", "cpp")
-PY_DIR   = os.path.join(BASE, "data", "python")
+PY_DIR   = os.path.join(BASE, "data", "python", "original")
 OUT_DIR  = os.path.join(BASE, "tables", "python_cpp_agreement_table")
 OUT_PATH = os.path.join(OUT_DIR, f"python_cpp_agreement_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf")
 

@@ -247,7 +247,7 @@ file_timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
 csv_folder    = './data'
 cpp_folder    = os.path.join(csv_folder, 'cpp')
-python_folder = os.path.join(csv_folder, 'python')
+python_folder = os.path.join(csv_folder, 'python', 'original')
 rust_folder   = os.path.join(csv_folder, 'rust')
 
 try:

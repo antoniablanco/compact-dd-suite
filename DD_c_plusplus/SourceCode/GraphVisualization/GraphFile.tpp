@@ -77,22 +77,29 @@ void GraphFile<T>::add_nodes_and_arcs() {
 
 template <typename T>
 void GraphFile<T>::add_node(Node<T>* node) {
+    string state = problem.get_state_as_string(node->state);
+
     (*bdd_file) << "\n node [\n";
     (*bdd_file) << "\t id " << node->get_id() << "\n";
-    (*bdd_file) << "\t label \"" << node->get_id() << "             " << problem.get_state_as_string(node->state) << "\"\n";
+    (*bdd_file) << "\t label \"" << state << "\"\n";
     (*bdd_file) << " \tgraphics [\n";
     (*bdd_file) << "\t type \"ellipse\"\n";
     (*bdd_file) << "\t hasFill 0\n";
     (*bdd_file) << "\t w 90.0   h 110.0\n";
     (*bdd_file) << "\t outline \"#000000\" ]\n";
+    add_node_label("Nodo " + to_string(node->get_id()), "t");
+    add_node_label(state, "c");
     (*bdd_file) << "]\n";
+}
+
+template <typename T>
+void GraphFile<T>::add_node_label(const string& text, const string& anchor) {
     (*bdd_file) << " \tLabelGraphics [\n";
-    (*bdd_file) << "\t text \"" << node->get_id() << "             "  << problem.get_state_as_string(node->state) << "\"\n";
+    (*bdd_file) << "\t text \"" << text << "\"\n";
     (*bdd_file) << "\t fontSize 12\n";
     (*bdd_file) << "\t fontName \"Dialog\"\n";
-    (*bdd_file) << "\t model \"sides\"\n";
-    (*bdd_file) << "\t anchor \"e\"\n";
-    (*bdd_file) << "\t borderDistance -50.0\n";
+    (*bdd_file) << "\t model \"internal\"\n";
+    (*bdd_file) << "\t anchor \"" << anchor << "\"\n";
     (*bdd_file) << "]\n";
 }
 

@@ -129,9 +129,8 @@ public:
     /**
      * @brief Map the model's x solution to the variable values expected by a given DD.
      *
-     * Default implementation is identity: returns (x_sol, {0, 1, ..., n-1}).
-     * Override in subclasses where the model has auxiliary variables not present
-     * in the DD (e.g. SOCKnapsack has y and z), or where the variable ordering differs.
+     * Follows the DD order through dd_to_original_index (covers sorted problems and DDs over a
+     * subset of the model variables, e.g. SOCKnapsack).
      *
      * @param x_sol                Current LP relaxation values for self.x (model variables).
      * @param dd_to_original_index Maps DD layer position i → original model variable index.
@@ -222,7 +221,7 @@ void AbstractProblemGurobi::set_up_dd_cut_generators(vector<DD<T>*> dds) {
     _cut_generator_owners.clear();
 
     for (auto* dd : dds) {
-        vector<int> orig_idx = dd->problem.dd_to_original_index;
+        vector<int> orig_idx = dd->problem.dd_to_original_index();
         _variable_mapping_fns.push_back(
             [this, orig_idx](const vector<double>& x_sol) {
                 return this->get_variable_values(x_sol, orig_idx);

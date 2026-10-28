@@ -67,9 +67,15 @@ bool DDReducer<T>::review_layer_to_merge_nodes(list<Node<T>*>& layer) {
 
 template <typename T>
 void DDReducer<T>::get_node_of_every_type_of_path(Node<T>* node,  string& paths_of_node) {
-    paths_of_node.clear();
+    out_arc_keys.clear();
     for (Arc<T>* arc : node->out_arcs) {
-        paths_of_node +=  arc->child_node->to_string() + to_string(arc->variable_value) + "_";
+        out_arc_keys.emplace_back(arc->child_node->get_id(), arc->variable_value);
+    }
+    sort(out_arc_keys.begin(), out_arc_keys.end());
+
+    paths_of_node.clear();
+    for (const auto& [child_id, variable_value] : out_arc_keys) {
+        paths_of_node += to_string(child_id) + "_" + to_string(variable_value) + "_";
     }
 }
 
@@ -130,7 +136,7 @@ void DDReducer<T>::print_graph(bool should_visualize) {
 template <typename T>
 void DDReducer<T>::print() const {
 
-    const vector<string>& variables = problem.ordered_variables;
+    const vector<string>& variables = problem.ordered_variables();
     cout << "" << endl;
     for (size_t layer_idx = 0; layer_idx < graph->structure.size(); ++layer_idx) {
         cout << "------------------------------------------------------" << endl;

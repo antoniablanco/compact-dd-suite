@@ -67,12 +67,15 @@ public:
     // ---- AbstractProblem interface ----
 
     /**
-     * @brief Sort pruned variables by decreasing (linear + omega*sqrt) weight,
-     *        rename them lexicographically (x_1, x_2, ...), and build
-     *        dd_to_original_index. Also reorders linear_weights, sqrt_weights,
-     *        and original_variable_names_domains to match the new order.
+     * @brief Sort pruned variables by decreasing (linear + omega*sqrt) weight.
      */
     vector<string> sort_variables(const vector<pair<string, vector<int>>>& variables) override;
+
+    /**
+     * @brief Index in the full (unpruned) variable list, so dd_to_original_index() maps each
+     *        DD position to the Gurobi model's variable.
+     */
+    int get_original_index(const string& variable_name, int variable_position) const override;
 
     bool transition_function(const vector<double>* previous_state,
                              int variable_index,
@@ -94,7 +97,7 @@ private:
     int omega;
     int capacity;
 
-    // ---- Intermediate pruned weights (used by sort_variables) ----
+    // ---- Pruned weights in original variable order (reordered into linear_weights / sqrt_weights) ----
     vector<int> _pruned_linear_weights; /**< Pruned linear weights in original variable order. */
     vector<int> _pruned_sqrt_weights;   /**< Pruned sqrt weights in original variable order. */
 
@@ -113,6 +116,14 @@ private:
         vector<int> pruned_sqrt_weights;
         map<string, int> original_name_to_index;
     };
+
+    /**
+     * @brief Check that omega and the linear weights are non-negative, so that adding an item never
+     *        makes a state more feasible. The sentinels and the semi DD connection rely on it. The
+     *        sqrt weights enter squared, so their sign does not matter.
+     * @throws invalid_argument if omega or some linear weight is negative.
+     */
+    void check_monotone_constraint() const;
 
     /** Delegating constructor that receives already-pruned data. */
     SOCKnapsackProblem(vector<double>* initial_state,

@@ -33,24 +33,17 @@ class SOCKnapsackProblem(AbstractProblem):
         # Use this to map from DD variables back to the Gurobi model's variable ordering.
         self.original_name_to_index: dict[str, int] = {name: i for i, (name, _) in enumerate(params.variables)}
 
+        self._check_monotone_constraint(params.variables, linear_weights)
+
         self._pruned_variables: list[tuple['Variable', 'Domain']] = []
         self._pruned_linear_weights: list[int] = []
         self._pruned_sqrt_weights: list[int] = []
         self._prune(params.variables, linear_weights, sqrt_weights)
 
-        # Defaults for sort=False (overwritten by sort_variables when sort=True)
-        self._sorted_linear_weights = self._pruned_linear_weights[:]
-        self._sorted_sqrt_weights = self._pruned_sqrt_weights[:]
-
         super().__init__(initial_state, self._pruned_variables, sort)
 
-        # AbstractProblem initializes dd_to_original_index as identity over pruned variables,
-        # but SOCKnapsack needs indices into the full original variable list.
-        if not sort:
-            self.dd_to_original_index = [self.original_name_to_index[name] for name, _ in self._pruned_variables]
-
-        self.linear_weights = self._sorted_linear_weights
-        self.sqrt_weights = self._sorted_sqrt_weights
+        self.linear_weights = self.reorder_to_dd_order(self._pruned_linear_weights)
+        self.sqrt_weights = self.reorder_to_dd_order(self._pruned_sqrt_weights)
         self.sqrt_weights_2 = [x ** 2 for x in self.sqrt_weights]
 
         self.min_linear_weight = []
@@ -68,22 +61,33 @@ class SOCKnapsackProblem(AbstractProblem):
 
     def sort_variables(self, variables: list[tuple['Variable', 'Domain']]) -> list[str]:
         '''
-        Sort variables by decreasing ordering weight (linear + omega * sqrt) and build
-        self.dd_to_original_index so callers can map DD position → original Gurobi index.
+        Sort variables by decreasing ordering weight (linear + omega * sqrt).
         '''
         paired = sorted(
             zip(variables, self._pruned_linear_weights, self._pruned_sqrt_weights),
             key=lambda x: x[1] + self.omega * x[2],
             reverse=True
         )
-
-        self.dd_to_original_index: list[int] = [
-            self.original_name_to_index[name] for name, _ in (item[0] for item in paired)
-        ]
-        self._sorted_linear_weights = [item[1] for item in paired]
-        self._sorted_sqrt_weights = [item[2] for item in paired]
-
         return [name for (name, _), _, _ in paired]
+
+    def get_original_index(self, variable_name: str, variable_position: int) -> int:
+        '''
+        Index in the full (unpruned) variable list, so dd_to_original_index maps each DD position
+        to the Gurobi model's variable.
+        '''
+        return self.original_name_to_index[variable_name]
+
+    def _check_monotone_constraint(self, variables: list[tuple['Variable', 'Domain']], linear_weights: list[int]) -> None:
+        '''
+        Check that omega and the linear weights are non-negative, so that adding an item never makes
+        a state more feasible. The sentinels and the semi DD connection rely on it. The sqrt weights
+        enter squared, so their sign does not matter.
+        '''
+        if self.omega < 0:
+            raise ValueError(f"SOCKnapsack requires a non-negative omega, got {self.omega}")
+        for (name, _), linear_weight in zip(variables, linear_weights):
+            if linear_weight < 0:
+                raise ValueError(f"SOCKnapsack requires non-negative linear weights, '{name}' has {linear_weight}")
 
     def _prune(self, variables: list[tuple['Variable', 'Domain']],
                                      linear_weights: list[int], sqrt_weights: list[int]) -> None:
@@ -146,6 +150,32 @@ class SOCKnapsackProblem(AbstractProblem):
 
         return False
 
+    def backward_transition_function(self, next_state: 'State', variable_index: int, variable_value: int, scratch_state: list) -> bool:
+        '''
+        Backward state [linear, sqrt^2] of the suffix, without sentinels: the min/sum bounds used by
+        transition_function look at the following variables, which the backward pass already decided.
+        '''
+        if variable_value == 0:
+            scratch_state[0][0] = next_state[0]
+            scratch_state[0][1] = next_state[1]
+            return True
+        scratch_state[0][0] = next_state[0] + self.linear_weights[variable_index] * variable_value
+        scratch_state[0][1] = next_state[1] + self.sqrt_weights_2[variable_index] * variable_value
+        return scratch_state[0][0] + self.omega * math.sqrt(scratch_state[0][1]) <= self.capacity
+
+    def connection_function(self, forward_state: 'State', variable_index: int, variable_value: int, backward_state: 'State') -> bool:
+        '''
+        Prefix, connection item and suffix must fit together in the SOC constraint. A prefix in the
+        sentinel -2 fits with any suffix; one in the sentinel -1 only with value 0 and an empty suffix.
+        '''
+        if forward_state[0] == -2:
+            return True
+        if forward_state[0] == -1:
+            return variable_value == 0 and backward_state[0] == 0 and backward_state[1] == 0
+        linear: int = forward_state[0] + self.linear_weights[variable_index] * variable_value + backward_state[0]
+        square: int = forward_state[1] + self.sqrt_weights_2[variable_index] * variable_value + backward_state[1]
+        return linear + self.omega * math.sqrt(square) <= self.capacity
+
     def get_priority_for_discard_node(self, state: 'State') -> int:
         '''
         Get the priority for discard a node.
@@ -156,6 +186,18 @@ class SOCKnapsackProblem(AbstractProblem):
         if state[0] < 0:
             return int(state[0])
         return -int(state[0] + self.omega * math.sqrt(state[1]))
+
+    def get_backward_priority_for_discard_node(self, state: 'State') -> int:
+        '''
+        Get the priority for discard a node of the lower graph: the heaviest suffixes are discarded
+        first. Keeping the heaviest ones in both halves leaves no pair that fits together, while the
+        empty suffix [0, 0] is always kept and connects with every prefix: thanks to the ceil, only
+        the suffixes that add nothing to the constraint share its priority 0.
+
+        Parameters:
+        - state ('State'): Backward state [linear, sqrt^2] of the suffix.
+        '''
+        return math.ceil(state[0] + self.omega * math.sqrt(state[1]))
 
     def get_priority_for_merge_nodes(self, id: int, state: 'State') -> int:
         '''

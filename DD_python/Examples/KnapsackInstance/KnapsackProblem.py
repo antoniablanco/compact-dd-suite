@@ -15,12 +15,12 @@ class KnapsackProblem(AbstractProblem):
             * right_side_of_restrictions (int): maximum capacity.
         - sort (bool): whether to sort variables by heuristic order.
         '''
+        assert len(params.weights) == len(params.variables), "weights and variables must have the same length"
+
         super().__init__(params.initial_state, params.variables, sort)
 
-        self.weights: list[int] = params.weights
+        self.weights: list[int] = self.reorder_to_dd_order(params.weights)
         self.capacity: int = params.right_side_of_restrictions
-
-        assert len(self.weights) == len(params.variables), "weights and variables must have the same length"
 
     def transition_function(self, previous_state: 'State', variable_index: int, variable_value: int, scratch_state: list) -> bool:
         if variable_value == 0:
@@ -29,7 +29,13 @@ class KnapsackProblem(AbstractProblem):
         new_val = previous_state + self.weights[variable_index] * variable_value
         scratch_state[0] = new_val
         return new_val <= self.capacity
-    
+
+    def connection_function(self, forward_state: 'State', variable_index: int, variable_value: int, backward_state: 'State') -> bool:
+        '''
+        Prefix weight, connection item and suffix weight must fit together in the knapsack.
+        '''
+        return forward_state + self.weights[variable_index] * variable_value + backward_state <= self.capacity
+
     def get_priority_for_discard_node(self, state: 'State') -> int:
         '''
         Get the priority for discard a node.
@@ -38,7 +44,18 @@ class KnapsackProblem(AbstractProblem):
         - state ('State'): State of the node.
         '''
         return -state
-    
+
+    def get_backward_priority_for_discard_node(self, state: 'State') -> int:
+        '''
+        Get the priority for discard a node of the lower graph: the heaviest suffixes are discarded
+        first. Keeping the heaviest ones in both halves leaves no pair that fits together, while the
+        empty suffix (weight 0) is always kept and connects with every prefix.
+
+        Parameters:
+        - state ('State'): Weight of the suffix.
+        '''
+        return state
+
     def get_priority_for_merge_nodes(self, id: int, state: 'State') -> int:
         '''
         Get the priority for merge two nodes.

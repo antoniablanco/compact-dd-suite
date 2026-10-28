@@ -9,17 +9,25 @@ class GraphFile:
     to represent a hierarchical directed graph with nodes and arcs.
     '''
 
-    def __init__(self, file_name: str, graph: Graph, problem: 'AbstractProblem'):
+    CONNECTION_ARC_COLOR: str = "#D62728"
+
+    def __init__(self, file_name: str, graph: Graph, problem: 'AbstractProblem', connect_layer: int = None):
         '''
         Constructor of the GraphFile class.
 
         Parameters:
         - file_name (str): Name of the GML file to be created.
         - graph (Graph): Graph object to be represented in the GML file.
+        - problem (AbstractProblem): Problem used to print the node states.
+        - connect_layer (int): Connection layer of a semi decision diagram. If given, the arcs
+        from layer connect_layer - 1 to layer connect_layer are drawn in CONNECTION_ARC_COLOR.
         '''
         self.file_name: str = file_name
         self.graph: 'Graph' = graph
         self._problem: 'AbstractProblem' = problem
+        self._connection_parents: set[int] = (
+            {id(node) for node in graph.structure[connect_layer - 1]} if connect_layer is not None else set()
+        )
 
         self.is_graph_binary: bool = self._check_if_graph_is_binary()
         self._create_gml_file()
@@ -86,28 +94,40 @@ class GraphFile:
 
     def _add_node(self, node: Node) -> None:
         '''
-        Adds node information to the GML file.
+        Adds node information to the GML file: "Nodo <id>" at the top of the node and its state
+        in the center.
 
         Parameters:
         - node (Node): Node object to be added to the GML file.
         '''
+        state: str = self._problem.get_state_as_string(node.state)
+
         self.file.write(f"\n node [\n")
         self.file.write(f"\t id {node.get_id()}\n")
-        
-        self.file.write(f"\t label \"{node.get_id()}             {self._problem.get_state_as_string(node.state)}\"\n")
+        self.file.write(f"\t label \"{state}\"\n")
         self.file.write(" \tgraphics [\n")
         self.file.write(f"\t type \"ellipse\"\n")
         self.file.write(f"\t hasFill 0\n")
         self.file.write("\t w 90.0   h 110.0\n")
         self.file.write("\t outline \"#000000\" ]\n")
+        self._add_node_label(f"Nodo {node.get_id()}", "t")
+        self._add_node_label(state, "c")
         self.file.write(f"]\n")
+
+    def _add_node_label(self, text: str, anchor: str) -> None:
+        '''
+        Writes a label inside the current node of the GML file.
+
+        Parameters:
+        - text (str): Text of the label.
+        - anchor (str): Position of the label inside the node ("t" top, "c" center).
+        '''
         self.file.write(" \tLabelGraphics [\n")
-        self.file.write(f"\t text \"{node.get_id()}             {self._problem.get_state_as_string(node.state)}\"\n")
+        self.file.write(f"\t text \"{text}\"\n")
         self.file.write(f"\t fontSize 12\n")
         self.file.write("\t fontName \"Dialog\"\n")
-        self.file.write("\t model \"sides\"\n")
-        self.file.write("\t anchor \"e\"\n")
-        self.file.write("\t borderDistance -50.0\n")
+        self.file.write("\t model \"internal\"\n")
+        self.file.write(f"\t anchor \"{anchor}\"\n")
         self.file.write(f"]\n")
 
     def _add_arcs(self, arcs: list[Arc]) -> None:
@@ -183,6 +203,22 @@ class GraphFile:
 
         self.file.write(f"]")
 
+    def _get_arc_color(self, arc: Arc, default_color: str) -> str:
+        '''
+        Returns the color of the arc: CONNECTION_ARC_COLOR if it belongs to the connection layer
+        of a semi decision diagram, default_color otherwise.
+
+        Parameters:
+        - arc (Arc): Arc to color.
+        - default_color (str): Color used outside the connection layer.
+
+        Returns:
+        - str: Hexadecimal color of the arc.
+        '''
+        if id(arc.parent_node) in self._connection_parents:
+            return self.CONNECTION_ARC_COLOR
+        return default_color
+
     def _add_normal_arc_graphics(self, arc: Arc) -> None:
         '''
         Writes graphics attributes for a non-binary arc to the GML file.
@@ -190,7 +226,7 @@ class GraphFile:
         Parameters:
         - arc (Arc): Arc whose normal graphics attributes will be written.
         '''
-        self.file.write(f"\tfill \"#000000\" 		targetArrow \"standard\"	 	 \n")
+        self.file.write(f"\tfill \"{self._get_arc_color(arc, '#000000')}\" 		targetArrow \"standard\"	 	 \n")
 
     def _add_binary_arc_graphics(self, arc: Arc) -> None:
         '''
@@ -201,9 +237,9 @@ class GraphFile:
         - arc (Arc): Arc whose binary graphics attributes will be written.
         '''
         if arc.variable_value == 0:
-            self.file.write(f"\tfill \"#808080\" 		targetArrow \"standard\"\t  style\t  \"dashed\"\t\n")
+            self.file.write(f"\tfill \"{self._get_arc_color(arc, '#808080')}\" 		targetArrow \"standard\"\t  style\t  \"dashed\"\t\n")
         else:
-            self.file.write(f"\tfill \"#000000\" 		targetArrow \"standard\"	 	 \n")
+            self.file.write(f"\tfill \"{self._get_arc_color(arc, '#000000')}\" 		targetArrow \"standard\"	 	 \n")
     
     def _end_file(self) -> None:
         '''

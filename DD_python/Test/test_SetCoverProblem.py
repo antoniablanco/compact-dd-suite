@@ -16,6 +16,7 @@ from SourceCode.DDStructure.Node import Node
 from SourceCode.GraphAlgorithms.ShortestLongestPath.ShortestLongestPath import ShortestLongestPath
 
 from Examples.SetCoverInstance.SetCoverProblem import SetCoverProblem
+from Exceptions.MyExceptions import InfeasibleInstance
 from Test.dd_controlled_generators.DDSetCover import (
     get_exact_dd_set_cover, 
     get_relaxed_dd_set_cover, 
@@ -348,6 +349,17 @@ class SetCoverTest(unittest.TestCase):
             actual_output = file.read()
         
         self.assertEqual(actual_output.strip(), expected_output.strip())
-    
+
+    def test_uncoverable_restriction_raises(self):
+        params = SimpleNamespace(
+            initial_state=bitarray("111"),
+            variables=[('conjunto_A', [0, 1]), ('conjunto_B', [0, 1])],
+            matrix_of_weight=[[1, 0], [0, 0], [0, 1]],
+            right_side_of_restrictions=[1, 1, 1],
+        )
+        with self.assertRaises(InfeasibleInstance) as context:
+            SetCoverProblem(params, sort=False)
+        self.assertIn("[1]", str(context.exception))
+
 if __name__ == '__main__':
     unittest.main()

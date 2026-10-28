@@ -58,7 +58,7 @@ protected:
 
 TEST_F(SetCoverProblemTest, TestOrderedVariables) {
     vector<string> ordered_variables_test = {"conjunto_A", "conjunto_B", "conjunto_C", "conjunto_D", "conjunto_E", "conjunto_F"};
-    ASSERT_EQ(problem_instance->ordered_variables, ordered_variables_test);
+    ASSERT_EQ(problem_instance->ordered_variables(), ordered_variables_test);
 }
 
 TEST_F(SetCoverProblemTest, TestVariablesDomain) {
@@ -446,4 +446,19 @@ TEST_F(SetCoverProblemTest, TestCompareGMLRelaxedDDGraph) {
     string actual_output((istreambuf_iterator<char>(actual_file)), istreambuf_iterator<char>());
 
     ASSERT_TRUE(actual_output==expected_output);
+}
+
+TEST_F(SetCoverProblemTest, TestUncoverableRestrictionThrows) {
+    vector<pair<string, vector<int>>> variables = {
+            make_pair("conjunto_A", vector<int>{0, 1}),
+            make_pair("conjunto_B", vector<int>{0, 1})
+    };
+    SetCoverInstance params(new dynamic_bitset<>(3, 0b111), variables, {{1, 0}, {0, 0}, {0, 1}}, {1, 1, 1});
+
+    try {
+        SetCoverProblem problem(params, false);
+        FAIL() << "Expected InfeasibleInstance";
+    } catch (const InfeasibleInstance& exception) {
+        ASSERT_NE(string(exception.what()).find("[1]"), string::npos);
+    }
 }

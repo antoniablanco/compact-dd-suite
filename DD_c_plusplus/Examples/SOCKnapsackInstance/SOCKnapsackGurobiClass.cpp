@@ -51,19 +51,6 @@ void SOCKnapsackGurobiClass::add_constraints() {
     }
 }
 
-pair<vector<double>, vector<int>> SOCKnapsackGurobiClass::get_variable_values(
-    const vector<double>& x_sol,
-    const vector<int>& dd_to_original_index) const
-{
-    // Override: the SOCK model has auxiliary variables (y, z) not in the DD.
-    // x_sol contains only the x variables; map them to the DD's ordering.
-    vector<double> x_sol_dd;
-    x_sol_dd.reserve(dd_to_original_index.size());
-    for (int var_id : dd_to_original_index)
-        x_sol_dd.push_back(x_sol[var_id]);
-    return {x_sol_dd, dd_to_original_index};
-}
-
 void SOCKnapsackGurobiClass::show_results() {
     if (model->get(GRB_IntAttr_Status) == GRB_OPTIMAL) {
         cout << "\n------------------------------" << endl;

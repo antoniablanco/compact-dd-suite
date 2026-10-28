@@ -59,7 +59,7 @@ protected:
 
 TEST_F(KnapsackProblemTest, TestOrderedVariables) {
     vector<string> ordered_variables_test = {"item_oro", "item_plata", "item_bronce", "item_hierro"};
-    ASSERT_EQ(problem_instance->ordered_variables, ordered_variables_test);
+    ASSERT_EQ(problem_instance->ordered_variables(), ordered_variables_test);
 }
 
 TEST_F(KnapsackProblemTest, TestVariablesDomain) {

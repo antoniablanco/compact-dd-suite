@@ -9,10 +9,12 @@ bool State::operator==(const State& other) const {
 
 KnapsackProblemState::KnapsackProblemState(State* initial_state, const KnapsackInstance& params, bool sort)
         : AbstractProblem(initial_state, params.variables),
-          weights(params.weights),
           capacity(params.right_side_of_restrictions)
 {
-    assert(params.variables.size() == weights.size() && "weights and variables must have the same length");
+    assert(params.variables.size() == params.weights.size() && "weights and variables must have the same length");
+
+    initialize_variable_order(params.variables, sort);
+    weights = reorder_to_dd_order(params.weights);
 }
 
 bool KnapsackProblemState::transition_function(const State* previous_state, const int variable_index, int variable_value, State* scratch_state) const {

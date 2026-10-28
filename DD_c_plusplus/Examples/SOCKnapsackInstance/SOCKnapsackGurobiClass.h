@@ -37,19 +37,6 @@ public:
      */
     void show_results() override;
 
-    /**
-     * @brief Override: the SOCK model has auxiliary variables (y, z) not present in the DD.
-     * Maps x_sol values to the DD's variables using the DD problem's variable name index.
-     *
-     * @param x_sol              Current LP relaxation values for self.x (model's x variables).
-     * @param dd_ordered_variables Variable names in the DD's own ordering.
-     * @param dd_name_to_index   Map from variable name to its index in the model's x.
-     * @return Pair (x_sol_dd, var_ids): values and model indices aligned with the DD's variables.
-     */
-    pair<vector<double>, vector<int>> get_variable_values(
-        const vector<double>& x_sol,
-        const vector<int>& dd_to_original_index) const override;
-
 private:
     const SOCKnapsackInstance params;   /**< Copy of the problem instance. */
     int num_constraints;                /**< Number of SOC constraints. */

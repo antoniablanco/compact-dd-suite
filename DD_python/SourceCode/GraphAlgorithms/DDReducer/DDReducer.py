@@ -76,22 +76,17 @@ class DDReducer():
         if self._remove_node_from_layer :
             layer[:] = new_layer
 
-    def _get_node_of_every_type_of_path(self, node: 'Node') -> str:
+    def _get_node_of_every_type_of_path(self, node: 'Node') -> frozenset:
         '''
-        Gets the nodes of the path of a node.
+        Gets the set of outgoing arcs of a node, independent of their order.
 
         Parameters:
         - node(Node): Node for which to get the path nodes.
 
         Returns:
-        - str: A string containing nodes of the path as keys and variable values as values.
+        - frozenset: Pairs (variable value, child node) of every outgoing arc.
         '''
-
-        path_of_nodes: str = ""
-        for arc in node.out_arcs:
-            path_of_nodes += f"{arc.child_node.to_string()}{arc.variable_value}_"
-
-        return path_of_nodes
+        return frozenset([(arc.variable_value, id(arc.child_node)) for arc in node.out_arcs])
 
     
     def _redirect_in_arcs(self, node_to_remove: 'Node', node_to_keep: 'Node') -> None:

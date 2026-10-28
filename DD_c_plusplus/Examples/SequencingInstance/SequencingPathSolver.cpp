@@ -34,49 +34,35 @@ string SequencingPathSolver::get_time() const {
 void SequencingPathSolver::run_dp() {
     double cost_sign = (objective_ == "max") ? -1.0 : 1.0;
     vector<NodeDP> dp_data;
-    vector<Arc<SequencingState>*> dp_arcs;
-    initialize_dp_tables(dp_data, dp_arcs);
-    forward_pass(dp_data, dp_arcs, cost_sign);
-    extract_solution(dp_data, dp_arcs);
+    initialize_dp_tables(dp_data);
+    forward_pass(dp_data, cost_sign);
+    extract_solution(dp_data);
 }
 
-void SequencingPathSolver::initialize_dp_tables(
-    vector<NodeDP>& dp_data, vector<Arc<SequencingState>*>& dp_arcs)
+void SequencingPathSolver::initialize_dp_tables(vector<NodeDP>& dp_data)
 {
     int total_nodes = graph_->get_node_count();
-    dp_data.resize(total_nodes);
-    dp_arcs.assign(total_nodes, nullptr);
+    dp_data.assign(total_nodes, NodeDP{});
     Node<SequencingState>* root_node = graph_->structure.front().front();
     NodeDP& root_dp = dp_data[root_node->get_id()];
-    root_dp.cost                = 0.0;
-    // Nothing is scheduled yet and the only possible previous job is the depot.
-    root_dp.previous_jobs       = uint64_t{1} << 0;
+    // Nothing is scheduled yet and the previous job is the depot.
+    root_dp.labels.push_back({-1, 0.0, nullptr, -1});
     root_dp.seen_jobs           = 0;
     root_dp.scheduled_weight_hi = 0;
     root_dp.scheduled_weight_lo = 0;
     root_dp.valid               = true;
 }
 
-int SequencingPathSolver::best_setup(uint64_t previous_jobs, int job_id, bool charge_most) const {
-    // Dearest setup among the possible previous jobs when charging the most, the
-    // cheapest one otherwise.
-    int best = -1;
-    uint64_t remaining = previous_jobs;
-    while (remaining) {
-        int index = __builtin_ctzll(remaining);
-        int candidate = problem_->setup_times[index][job_id];
-        if (best < 0)          best = candidate;
-        else if (charge_most)  best = max(best, candidate);
-        else                   best = min(best, candidate);
-        remaining &= remaining - 1;
-    }
-    return best;
+const SequencingPathSolver::Label* SequencingPathSolver::find_label(const NodeDP& node_dp, int last_job) {
+    for (const Label& label : node_dp.labels)
+        if (label.last_job == last_job) return &label;
+    return nullptr;
 }
 
 SequencingPathSolver::NodeDP SequencingPathSolver::describe_node(
     const Node<SequencingState>* node, const vector<NodeDP>& dp_data, int total_weight) const
 {
-    // Merge into one description everything the incoming paths can look like.
+    // Merge into one range everything the incoming paths can look like.
     NodeDP current;
     current.scheduled_weight_lo = numeric_limits<int>::max();
     for (Arc<SequencingState>* arc : node->in_arcs) {
@@ -88,7 +74,6 @@ SequencingPathSolver::NodeDP SequencingPathSolver::describe_node(
         const int job_weight = problem_->weights[job_id];
 
         current.valid          = true;
-        current.previous_jobs |= uint64_t{1} << (job_id + 1);
         current.seen_jobs     |= parent.seen_jobs | job_bit;
         // A job already seen adds no weight, and the total is capped at W_total.
         current.scheduled_weight_hi = max(current.scheduled_weight_hi,
@@ -100,8 +85,7 @@ SequencingPathSolver::NodeDP SequencingPathSolver::describe_node(
     return current;
 }
 
-void SequencingPathSolver::forward_pass(
-    vector<NodeDP>& dp_data, vector<Arc<SequencingState>*>& dp_arcs, double cost_sign)
+void SequencingPathSolver::forward_pass(vector<NodeDP>& dp_data, double cost_sign)
 {
     int total_weight = 0;
     for (int w : problem_->weights) total_weight += w;
@@ -120,49 +104,57 @@ void SequencingPathSolver::forward_pass(
                 const NodeDP& parent = dp_data[arc->parent_node->get_id()];
                 if (!parent.valid) continue;
 
-                int job_id   = arc->variable_value;
-                int setup    = best_setup(parent.previous_jobs, job_id, charge_most);
-                int duration = setup + problem_->processing_times[job_id];
-                // duration * (W_total - already_scheduled), taking the end of the
-                // range that keeps the bound.
-                int scheduled = charge_most ? parent.scheduled_weight_lo
-                                            : parent.scheduled_weight_hi;
-                double arc_cost = static_cast<double>(duration) * (total_weight - scheduled);
-                double candidate_cost = parent.cost + cost_sign * arc_cost;
+                const int job_id = arc->variable_value;
+                // (W_total - already_scheduled), taking the end of the range that
+                // keeps the bound.
+                const int scheduled = charge_most ? parent.scheduled_weight_lo
+                                                  : parent.scheduled_weight_hi;
+                const double remaining_weight = static_cast<double>(total_weight - scheduled);
 
-                if (candidate_cost < current.cost) {
-                    current.cost     = candidate_cost;
-                    dp_arcs[node_id] = arc;
+                // Every label coming through this arc ends in job_id.
+                size_t target = 0;
+                while (target < current.labels.size() && current.labels[target].last_job != job_id)
+                    ++target;
+                for (const Label& parent_label : parent.labels) {
+                    int duration = problem_->setup_times[parent_label.last_job + 1][job_id]
+                                   + problem_->processing_times[job_id];
+                    double candidate_cost = parent_label.cost + cost_sign * duration * remaining_weight;
+                    if (target == current.labels.size())
+                        current.labels.push_back({job_id, candidate_cost, arc, parent_label.last_job});
+                    else if (candidate_cost < current.labels[target].cost)
+                        current.labels[target] = {job_id, candidate_cost, arc, parent_label.last_job};
                 }
             }
 
-            dp_data[node_id] = current;
+            dp_data[node_id] = std::move(current);
         }
     }
 }
 
-void SequencingPathSolver::extract_solution(
-    const vector<NodeDP>& dp_data, const vector<Arc<SequencingState>*>& dp_arcs)
+void SequencingPathSolver::extract_solution(const vector<NodeDP>& dp_data)
 {
     Node<SequencingState>* terminal_node = graph_->structure.back().front();
     int terminal_id = terminal_node->get_id();
-    double optimal_cost = dp_data[terminal_id].cost;
+    const Label* best = nullptr;
+    for (const Label& label : dp_data[terminal_id].labels)
+        if (best == nullptr || label.cost < best->cost) best = &label;
+    double optimal_cost = best->cost;
     if (objective_ == "max") optimal_cost = -optimal_cost;
     solution_.value = optimal_cost;
-    backtrack_optimal_path(dp_arcs, terminal_id);
+    backtrack_optimal_path(dp_data, terminal_id, best->last_job);
 }
 
 void SequencingPathSolver::backtrack_optimal_path(
-    const vector<Arc<SequencingState>*>& dp_arcs, int terminal_id)
+    const vector<NodeDP>& dp_data, int terminal_id, int last_job)
 {
     solution_.path_arcs.clear();
     string path_string;
-    int current_id = terminal_id;
-    while (dp_arcs[current_id] != nullptr) {
-        Arc<SequencingState>* arc = dp_arcs[current_id];
+    const Label* label = find_label(dp_data[terminal_id], last_job);
+    while (label != nullptr && label->arc != nullptr) {
+        Arc<SequencingState>* arc = label->arc;
         path_string = "-> " + arc->to_string() + path_string;
         solution_.path_arcs.push_front(arc);
-        current_id = arc->parent_node->get_id();
+        label = find_label(dp_data[arc->parent_node->get_id()], label->parent_last_job);
     }
     if (path_string.size() >= 2)
         path_string = path_string.substr(2);

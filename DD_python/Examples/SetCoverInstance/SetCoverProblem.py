@@ -1,4 +1,5 @@
 from SourceCode.Problems.AbstractProblemClass import AbstractProblem
+from Exceptions.MyExceptions import InfeasibleInstance
 from bitarray import bitarray
 
 class SetCoverProblem(AbstractProblem):
@@ -20,16 +21,16 @@ class SetCoverProblem(AbstractProblem):
 
         self.right_side_of_restrictions = self.convert_to_bitset(params.right_side_of_restrictions, len(params.matrix_of_weight))
 
-        if not sort:
-            self.matrix_of_weight = [
-                self.convert_to_bitset(row, len(params.matrix_of_weight[0]))
-                for row in params.matrix_of_weight
-            ]
+        self.matrix_of_weight = [
+            self.convert_to_bitset(self.reorder_to_dd_order(row), len(row))
+            for row in params.matrix_of_weight
+        ]
         self.matrix_of_weight_transpose = []
 
         self.check_atributes(params.variables, params.initial_state)
         self.create_transpose_matrix_of_weights(self.matrix_of_weight)
         self.calculate_row_max_index()
+        self.calculate_row_min_index()
 
     def sort_variables(self, variables: list[tuple['Variable', 'Domain']]) -> list[str]:
         n_restrictions = len(self._raw_matrix)
@@ -37,16 +38,8 @@ class SetCoverProblem(AbstractProblem):
             sum(self._raw_matrix[row][i] for row in range(n_restrictions))
             for i in range(len(variables))
         ]
-        self.dd_to_original_index = sorted(range(len(variables)), key=lambda i: -coverage[i])
-
-        sorted_matrix = [[row[i] for i in self.dd_to_original_index] for row in self._raw_matrix]
-
-        self.matrix_of_weight = [
-            self.convert_to_bitset(row, len(sorted_matrix[0]))
-            for row in sorted_matrix
-        ]
-    
-        return [variables[i][0] for i in self.dd_to_original_index]
+        sorted_positions = sorted(range(len(variables)), key=lambda i: -coverage[i])
+        return [variables[i][0] for i in sorted_positions]
 
     def check_atributes(self, variables: list[tuple['Variable', 'Domain']], initial_state: 'State') -> None:
         '''
@@ -58,6 +51,7 @@ class SetCoverProblem(AbstractProblem):
         '''
         self.check_same_len_matrix_and_right_side(initial_state)
         self.check_same_len_rows_matrix_and_variables(variables)
+        self.check_every_restriction_is_coverable()
     
     def check_same_len_matrix_and_right_side(self, initial_state: 'State') -> None:
         '''
@@ -78,6 +72,15 @@ class SetCoverProblem(AbstractProblem):
         '''
         for row in range(len(self.matrix_of_weight)):
             assert len(self.matrix_of_weight[row]) == len(variables), "rows of matrix_of_weight and right_side_of_restrictions must have the same length of variables"
+
+    def check_every_restriction_is_coverable(self) -> None:
+        '''
+        Check that every restriction (row) is covered by at least one variable. Otherwise the
+        instance has no feasible solution.
+        '''
+        uncoverable_rows: list[int] = [row for row, coverage in enumerate(self.matrix_of_weight) if not coverage.any()]
+        if uncoverable_rows:
+            raise InfeasibleInstance(f"Set cover restrictions {uncoverable_rows} are not covered by any variable")
 
     def convert_to_bitset(self, vec, size):
         '''
@@ -117,32 +120,65 @@ class SetCoverProblem(AbstractProblem):
     
     def calculate_row_max_index(self) -> None:
         '''
-        Calculate the index of the last variable (column) set to 1 for each restriction (row).
-
-        Populates self.max_indices where each entry is the 1-based index of the last
-        True bit in the corresponding row of the weight matrix, or -1 if no bit is set.
+        Populates self.max_indices, where entry i is the bitarray of the restrictions whose last
+        covering variable is at position <= i: once variable i is set to 0, those restrictions can
+        no longer be covered by the remaining variables.
         '''
-        self.max_indices = []
-        for row in self.matrix_of_weight:
-            max_index = -1
-            for col in range(len(row) - 1, -1, -1):
-                if row[col]:
-                    max_index = col + 1
-                    break
-            self.max_indices.append(max_index)
+        rows: int = len(self.matrix_of_weight)
+        covered_by_suffix: bitarray = bitarray(rows)
+        covered_by_suffix.setall(False)
+        self.max_indices: list[bitarray] = [None] * len(self.matrix_of_weight_transpose)
+        for variable_index in range(len(self.matrix_of_weight_transpose) - 1, -1, -1):
+            self.max_indices[variable_index] = ~covered_by_suffix
+            covered_by_suffix |= self.matrix_of_weight_transpose[variable_index]
+
+    def calculate_row_min_index(self) -> None:
+        '''
+        Mirror of calculate_row_max_index for the backward pass of a semi decision diagram.
+
+        Populates self.min_indices, where entry i is the bitarray of the restrictions whose
+        first covering variable is at position >= i: once the backward pass skips variable i, those
+        restrictions can no longer be covered by the prefix.
+        '''
+        rows: int = len(self.matrix_of_weight)
+        covered_by_prefix: bitarray = bitarray(rows)
+        covered_by_prefix.setall(False)
+        prefix_covers: list[bitarray] = []
+        for column in self.matrix_of_weight_transpose:
+            prefix_covers.append(covered_by_prefix.copy())
+            covered_by_prefix |= column
+
+        self.min_indices: list[bitarray] = [~prefix_cover for prefix_cover in prefix_covers]
 
     def transition_function(self, previous_state: 'State', variable_index: int, variable_value: int, scratch_state: list) -> bool:
         if variable_value == 0:
-            for row in range(len(previous_state)):
-                if self.max_indices[row] != -1 and variable_index >= self.max_indices[row] - 1:
-                    if previous_state[row]:
-                        return False
+            if (previous_state & self.max_indices[variable_index]).any():
+                return False
             scratch_state[0][:] = previous_state
             return True
         scratch_state[0][:] = previous_state
         scratch_state[0] &= ~self.matrix_of_weight_transpose[variable_index]
         return True
     
+    def backward_transition_function(self, next_state: 'State', variable_index: int, variable_value: int, scratch_state: list) -> bool:
+        if variable_value == 0:
+            if (next_state & self.min_indices[variable_index]).any():
+                return False
+            scratch_state[0][:] = next_state
+            return True
+        scratch_state[0][:] = next_state
+        scratch_state[0] &= ~self.matrix_of_weight_transpose[variable_index]
+        return True
+
+    def connection_function(self, forward_state: 'State', variable_index: int, variable_value: int, backward_state: 'State') -> bool:
+        '''
+        No restriction may stay uncovered by both the prefix (with the connection variable) and the suffix.
+        '''
+        uncovered: bitarray = forward_state & backward_state
+        if variable_value == 1:
+            uncovered &= ~self.matrix_of_weight_transpose[variable_index]
+        return not uncovered.any()
+
     def get_priority_for_discard_node(self, state: 'State') -> int:
         '''
         Get the priority for discard a node.
@@ -154,7 +190,22 @@ class SetCoverProblem(AbstractProblem):
         - int: Priority for discard the node.
         '''
         return state.count(True)
-    
+
+    def get_backward_priority_for_discard_node(self, state: 'State') -> int:
+        '''
+        Get the priority for discard a node of the lower graph: the suffixes that cover the most
+        restrictions are discarded first. The upper graph keeps the prefixes that cover the most,
+        so the lower one keeps the suffixes that leave the most to the prefix (the cheapest ones);
+        keeping the ones that cover the most in both halves covers most restrictions twice.
+
+        Parameters:
+        - state ('State'): Restrictions not covered by the suffix.
+
+        Returns:
+        - int: Priority for discard the node.
+        '''
+        return -state.count(True)
+
     def get_priority_for_merge_nodes(self, node_id: int, state: 'State') -> int:
         '''
         Get the priority for merge two nodes.
@@ -166,6 +217,21 @@ class SetCoverProblem(AbstractProblem):
         - int: Priority for merge the nodes.
         '''
         return state.count()
+
+    def get_backward_priority_for_merge_nodes(self, node_id: int, state: 'State') -> int:
+        '''
+        Get the priority for merge two nodes of the lower graph: the suffixes that cover the most
+        restrictions are merged first. Merging the ones that cover the least (the cheapest ones)
+        hands them the coverage of the others, and the dual bound falls to the trivial 0.
+
+        Parameters:
+        - node_id (int): Id of the node.
+        - state ('State'): Restrictions not covered by the suffix.
+
+        Returns:
+        - int: Priority for merge the nodes.
+        '''
+        return -state.count(True)
 
     def merge_operator(self, state_one: 'State', state_two: 'State') -> 'State':
         '''

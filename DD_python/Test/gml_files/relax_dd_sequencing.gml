@@ -4,146 +4,194 @@ graph [
 
  node [
 	 id 0
-	 label "0             []_-1"
+	 label "[]_-1"
  	graphics [
 	 type "ellipse"
 	 hasFill 0
 	 w 90.0   h 110.0
 	 outline "#000000" ]
-]
  	LabelGraphics [
-	 text "0             []_-1"
+	 text "Nodo 0"
 	 fontSize 12
 	 fontName "Dialog"
-	 model "sides"
-	 anchor "e"
-	 borderDistance -50.0
+	 model "internal"
+	 anchor "t"
+]
+ 	LabelGraphics [
+	 text "[]_-1"
+	 fontSize 12
+	 fontName "Dialog"
+	 model "internal"
+	 anchor "c"
+]
 ]
 
  node [
 	 id 1
-	 label "1             [0]_0"
+	 label "[0]_0"
  	graphics [
 	 type "ellipse"
 	 hasFill 0
 	 w 90.0   h 110.0
 	 outline "#000000" ]
-]
  	LabelGraphics [
-	 text "1             [0]_0"
+	 text "Nodo 1"
 	 fontSize 12
 	 fontName "Dialog"
-	 model "sides"
-	 anchor "e"
-	 borderDistance -50.0
+	 model "internal"
+	 anchor "t"
+]
+ 	LabelGraphics [
+	 text "[0]_0"
+	 fontSize 12
+	 fontName "Dialog"
+	 model "internal"
+	 anchor "c"
+]
 ]
 
  node [
 	 id 2
-	 label "2             [1]_1"
+	 label "[1]_1"
  	graphics [
 	 type "ellipse"
 	 hasFill 0
 	 w 90.0   h 110.0
 	 outline "#000000" ]
-]
  	LabelGraphics [
-	 text "2             [1]_1"
+	 text "Nodo 2"
 	 fontSize 12
 	 fontName "Dialog"
-	 model "sides"
-	 anchor "e"
-	 borderDistance -50.0
+	 model "internal"
+	 anchor "t"
+]
+ 	LabelGraphics [
+	 text "[1]_1"
+	 fontSize 12
+	 fontName "Dialog"
+	 model "internal"
+	 anchor "c"
+]
 ]
 
  node [
 	 id 3
-	 label "3             [2]_2"
+	 label "[2]_2"
  	graphics [
 	 type "ellipse"
 	 hasFill 0
 	 w 90.0   h 110.0
 	 outline "#000000" ]
-]
  	LabelGraphics [
-	 text "3             [2]_2"
+	 text "Nodo 3"
 	 fontSize 12
 	 fontName "Dialog"
-	 model "sides"
-	 anchor "e"
-	 borderDistance -50.0
+	 model "internal"
+	 anchor "t"
+]
+ 	LabelGraphics [
+	 text "[2]_2"
+	 fontSize 12
+	 fontName "Dialog"
+	 model "internal"
+	 anchor "c"
+]
 ]
 
  node [
 	 id 4
-	 label "4             [2]_2"
+	 label "[2]_2"
  	graphics [
 	 type "ellipse"
 	 hasFill 0
 	 w 90.0   h 110.0
 	 outline "#000000" ]
-]
  	LabelGraphics [
-	 text "4             [2]_2"
+	 text "Nodo 4"
 	 fontSize 12
 	 fontName "Dialog"
-	 model "sides"
-	 anchor "e"
-	 borderDistance -50.0
+	 model "internal"
+	 anchor "t"
+]
+ 	LabelGraphics [
+	 text "[2]_2"
+	 fontSize 12
+	 fontName "Dialog"
+	 model "internal"
+	 anchor "c"
+]
 ]
 
  node [
 	 id 5
-	 label "5             [1]_2"
+	 label "[1]_2"
  	graphics [
 	 type "ellipse"
 	 hasFill 0
 	 w 90.0   h 110.0
 	 outline "#000000" ]
-]
  	LabelGraphics [
-	 text "5             [1]_2"
+	 text "Nodo 5"
 	 fontSize 12
 	 fontName "Dialog"
-	 model "sides"
-	 anchor "e"
-	 borderDistance -50.0
+	 model "internal"
+	 anchor "t"
+]
+ 	LabelGraphics [
+	 text "[1]_2"
+	 fontSize 12
+	 fontName "Dialog"
+	 model "internal"
+	 anchor "c"
+]
 ]
 
  node [
 	 id 6
-	 label "6             [0, 2]_0"
+	 label "[0, 2]_0"
  	graphics [
 	 type "ellipse"
 	 hasFill 0
 	 w 90.0   h 110.0
 	 outline "#000000" ]
-]
  	LabelGraphics [
-	 text "6             [0, 2]_0"
+	 text "Nodo 6"
 	 fontSize 12
 	 fontName "Dialog"
-	 model "sides"
-	 anchor "e"
-	 borderDistance -50.0
+	 model "internal"
+	 anchor "t"
+]
+ 	LabelGraphics [
+	 text "[0, 2]_0"
+	 fontSize 12
+	 fontName "Dialog"
+	 model "internal"
+	 anchor "c"
+]
 ]
 
  node [
 	 id 7
-	 label "7             []_-1"
+	 label "[]_-1"
  	graphics [
 	 type "ellipse"
 	 hasFill 0
 	 w 90.0   h 110.0
 	 outline "#000000" ]
-]
  	LabelGraphics [
-	 text "7             []_-1"
+	 text "Nodo 7"
 	 fontSize 12
 	 fontName "Dialog"
-	 model "sides"
-	 anchor "e"
-	 borderDistance -50.0
+	 model "internal"
+	 anchor "t"
+]
+ 	LabelGraphics [
+	 text "[]_-1"
+	 fontSize 12
+	 fontName "Dialog"
+	 model "internal"
+	 anchor "c"
+]
 ]
 
 edge [

@@ -39,13 +39,13 @@ class AbstractDDBuilder(ABC):
 
     def _set_variables_domain(self, variables_domain: dict[str, list[int]]) -> None:
         '''
-        Populates the ordered list of variable domains from the problem's domain mapping.
+        Populates the list of variable domains in the DD order.
 
         Parameters:
         - variables_domain: Dictionary mapping variable names to their list of possible values.
         '''
-        for domains in variables_domain.values():
-            self._variables_domain.append(domains)
+        for variable_name in self._variables:
+            self._variables_domain.append(variables_domain[variable_name])
         
     def _initialize_graph(self, initial_state: 'State') -> None:
         '''
