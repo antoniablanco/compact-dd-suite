@@ -366,6 +366,12 @@ Cluster test of the sMDD with the best connection layer. It runs in two steps:
    `-ConnectLayer_<k*>`; restricted and relaxed use the `k*` of the exact sMDD. Instances without `k*`
    are skipped. Output: `results/python/results_python_semi_kopt_<date>.csv`.
 
+`submit_connect_layer_missing_python.sh` repeats both steps only for the 261 instances that got no `k*`
+in the run of 25/10/2026 (hardcoded in `INSTANCES`), with `TIMEOUT_K=4h`, `--mem=96G` and 3 processes in
+parallel. It logs every failure, out-of-memory kills (exit 137) included. Outputs:
+`connect_layers_missing_python_<date>.csv` and `results_semi_kopt_missing_python_<date>.csv`, named apart
+so the `data_visualization` scripts do not take them for the full run.
+
 ---
 
 ## General cluster usage and useful commands
