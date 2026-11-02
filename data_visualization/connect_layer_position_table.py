@@ -58,7 +58,8 @@ def instance_family(problem, name):
     if problem == "SOC Knapsack":
         return "n = " + re.search(r"_n(\d+)m", name).group(1)
     if problem == "Sequencing":
-        return re.search(r"atsp_([a-z]+\d*)_", name).group(1)
+        m = re.search(r"atsp_([a-z]+\d*)_", name)
+        return m.group(1) if m else "n = " + re.search(r"_n(\d+)_", name).group(1)
     return "—"
 
 

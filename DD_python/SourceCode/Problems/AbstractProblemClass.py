@@ -323,6 +323,39 @@ class AbstractProblem(ABC):
         '''
         raise NotImplementedError("The method connection_function has not been implemented yet")
 
+    def get_connection_index(self, variable_id: int, backward_states: list['State']) -> object:
+        '''
+        Builds, once per semi decision diagram, a structure over the states of the first layer of
+        the lower graph that get_connection_candidates uses to skip the pairs that cannot connect.
+        Defaults to None: every pair is checked with connection_function.
+
+        Parameters:
+        - variable_id(int): The identifier of the connection variable.
+        - backward_states(list['State']): States of the first layer of the lower graph, in layer order. *READ IMPORTANT
+
+        Returns:
+        - object: The index, or None to check every pair.
+        '''
+        return None
+
+    def get_connection_candidates(self, connection_index: object, forward_state: 'State', variable_id: int, variable_value: int) -> list[int]:
+        '''
+        Positions of the first lower layer that may connect with forward_state through
+        variable_value. It must contain every position accepted by connection_function, in
+        ascending order; each candidate is still checked with connection_function. Only called
+        when get_connection_index does not return None.
+
+        Parameters:
+        - connection_index(object): The index returned by get_connection_index.
+        - forward_state('State'): State of the node in the last layer of the upper graph. *READ IMPORTANT
+        - variable_id(int): The identifier of the connection variable.
+        - variable_value(int): The value of the connection variable.
+
+        Returns:
+        - list[int]: The candidate positions, in ascending order.
+        '''
+        raise NotImplementedError("The method get_connection_candidates has not been implemented yet")
+
     def get_backward_priority_for_discard_node(self, state: 'State') -> int:
         '''
         Defines the priority for discarding nodes of the lower graph of a restricted semi decision

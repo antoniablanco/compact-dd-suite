@@ -198,20 +198,26 @@ class AbstractSemiDDBuilder(ABC):
         '''
         Creates an arc (u, value, w) for every node u in the last upper layer, every value of the
         connection variable and every node w in the first lower layer accepted by the connection
-        function. The resulting layer is not deterministic.
+        function. The resulting layer is not deterministic. If the problem builds a connection
+        index, only its candidates are checked.
         '''
         variable_id: int = self.connect_layer - 1
         variable_index: int = self._variables_index[variable_id]
         domain: list[int] = self._variables_domain[variable_id]
         connection_function = self._problem.connection_function
         lower_layer: list[Node] = self._lower_graph.structure[-1]
+        connection_index = self._problem.get_connection_index(variable_index, [node.state for node in lower_layer])
+        all_positions: range = range(len(lower_layer))
 
         for upper_node in self._upper_graph.structure[-1]:
             upper_state = upper_node.state
             out_arcs: list[Arc] = upper_node.out_arcs
 
             for variable_value in domain:
-                for lower_node in lower_layer:
+                candidates = all_positions if connection_index is None else \
+                    self._problem.get_connection_candidates(connection_index, upper_state, variable_index, variable_value)
+                for position in candidates:
+                    lower_node: Node = lower_layer[position]
                     if connection_function(upper_state, variable_index, variable_value, lower_node.state):
                         arc: Arc = Arc(upper_node, lower_node, variable_value)
                         out_arcs.append(arc)
