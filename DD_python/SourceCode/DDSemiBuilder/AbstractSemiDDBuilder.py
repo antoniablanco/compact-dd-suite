@@ -50,12 +50,28 @@ class AbstractSemiDDBuilder(ABC):
         self._variables_domain: list[list[int]] = [problem.variables_domain[name] for name in self._variables]
         self._map_of_states: dict[str, Node] = {}
         self.connect_layer: int = problem.connect_layer
+        self._connection_weights: list[int] = None
+        self._connection_objective: str = None
 
         initial_backward_state: 'State' = problem.get_initial_backward_state()
         self._scratch_state: list = [problem.get_state_copy(problem.initial_state)]
         self._backward_scratch_state: list = [problem.get_state_copy(initial_backward_state)]
 
         self._initialize_graphs(problem.initial_state, initial_backward_state)
+
+    def set_connection_pruning(self, weights: list[int], objective: str) -> None:
+        '''
+        Keeps, for every node of the last upper layer and every value of the connection variable,
+        only the arc to the compatible lower node with the best value to the terminal. The optimal
+        value of the diagram does not change, but it no longer holds every solution: it is only
+        valid for these weights (not for cuts) and for objectives that add one weight per arc.
+
+        Parameters:
+        - weights(list[int]): Objective weight of each variable, in diagram order.
+        - objective(str): "max" or "min".
+        '''
+        self._connection_weights = weights
+        self._connection_objective = objective
 
     def _check_problem_supports_semi_dd(self, problem: AbstractProblem) -> None:
         '''
@@ -208,6 +224,7 @@ class AbstractSemiDDBuilder(ABC):
         lower_layer: list[Node] = self._lower_graph.structure[-1]
         connection_index = self._problem.get_connection_index(variable_index, [node.state for node in lower_layer])
         all_positions: range = range(len(lower_layer))
+        lower_scores: list[float] = None if self._connection_weights is None else self._lower_layer_scores()
 
         for upper_node in self._upper_graph.structure[-1]:
             upper_state = upper_node.state
@@ -216,12 +233,62 @@ class AbstractSemiDDBuilder(ABC):
             for variable_value in domain:
                 candidates = all_positions if connection_index is None else \
                     self._problem.get_connection_candidates(connection_index, upper_state, variable_index, variable_value)
+                if lower_scores is not None:
+                    self._create_best_connection_arc(upper_node, variable_index, variable_value, candidates, lower_scores)
+                    continue
                 for position in candidates:
                     lower_node: Node = lower_layer[position]
                     if connection_function(upper_state, variable_index, variable_value, lower_node.state):
                         arc: Arc = Arc(upper_node, lower_node, variable_value)
                         out_arcs.append(arc)
                         lower_node.in_arcs.append(arc)
+
+    def _lower_layer_scores(self) -> list[float]:
+        '''
+        Best value from each node of the first lower layer to the terminal, signed so that higher
+        is better (-inf if the terminal is unreachable). Used by the connection pruning.
+
+        Returns:
+        - list[float]: The score of each node of the first lower layer, in layer order.
+        '''
+        sign: int = 1 if self._connection_objective == "max" else -1
+        structure: list[list[Node]] = self._lower_graph.structure
+        number_of_variables: int = len(self._variables)
+        scores: dict[int, float] = {id(structure[0][0]): 0}
+
+        for layer_position in range(1, len(structure)):
+            weight: int = sign * self._connection_weights[number_of_variables - layer_position]
+            for node in structure[layer_position]:
+                scores[id(node)] = max((scores.get(id(arc.child_node), float("-inf")) + arc.variable_value * weight
+                                        for arc in node.out_arcs), default=float("-inf"))
+
+        return [scores[id(node)] for node in structure[-1]]
+
+    def _create_best_connection_arc(self, upper_node: Node, variable_index: int, variable_value: int,
+                                    candidates, lower_scores: list[float]) -> None:
+        '''
+        Creates the arc from upper_node to the compatible lower node with the best score; the first
+        one in layer order on ties.
+
+        Parameters:
+        - upper_node: Node of the last upper layer.
+        - variable_index: Index of the connection variable.
+        - variable_value: Value of the connection variable.
+        - candidates: Positions of the first lower layer that may connect.
+        - lower_scores: Score of each node of the first lower layer.
+        '''
+        connection_function = self._problem.connection_function
+        lower_layer: list[Node] = self._lower_graph.structure[-1]
+        best_position: int = None
+        best_score: float = float("-inf")
+
+        for position in candidates:
+            if lower_scores[position] > best_score and \
+                    connection_function(upper_node.state, variable_index, variable_value, lower_layer[position].state):
+                best_position, best_score = position, lower_scores[position]
+
+        if best_position is not None:
+            self._create_arc(upper_node, lower_layer[best_position], variable_value)
 
     def _join_graphs(self) -> None:
         '''

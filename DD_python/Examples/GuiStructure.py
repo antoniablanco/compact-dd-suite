@@ -49,6 +49,7 @@ class GuiStructure:
         sort: bool = True,
         semi_flag: bool = False,
         connect_layer: int = None,
+        prune_connection: bool = False,
     ):
         self.input_file_path: str = input_file_path
         self.output_file_path: str = output_file_path
@@ -62,6 +63,7 @@ class GuiStructure:
         self.sort: bool = sort
         self.semi_flag: bool = semi_flag
         self.connect_layer: int = connect_layer
+        self.prune_connection: bool = prune_connection
 
 
 class GuiCutsStructure:
