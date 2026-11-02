@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # Job name
-#SBATCH --job-name=dd-batch-python
-#SBATCH --output=/home1/%u/compact-dd-suite-results/salidas/python/salida_semi_python.txt
+#SBATCH --job-name=dd-semi-connection-index-python
+#SBATCH --output=/home1/%u/compact-dd-suite-results/salidas/python/salida_semi_connection_index_python.txt
 #SBATCH --partition=gpus
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=5
@@ -27,14 +27,14 @@ pwd
 sleep 1
 
 
-RUN_TAG="_index" # Connection index (get_connection_index) in Knapsack and Sequencing
+RUN_TAG="_connection_index" # Connection index (get_connection_index) in every problem but SOCKnapsack
 LOG_TIMEOUT="$HOME/compact-dd-suite-results/timeout_log/python/timeout_log_python${RUN_TAG}_$(date '+%d_%m_%Y_%H-%M-%S').txt"
 MAX_PARALLEL=5  # Maximum number of parallel processes, must equal --cpus-per-task
 MAX_TIMEOUT=5m # Maximum wait time per process (s: seconds, m: minutes, h: hours)
 pids=()
 metadata=()
 
-PROBLEMS=("Knapsack" "Sequencing") # Only these two build the connection with an index
+PROBLEMS=("Knapsack" "IndependentSet" "SetCover" "Sequencing") # SOCKnapsack has no connection index
 TYPES=("Exact" "Restricted" "RelaxPriority" "RelaxGrouping")
 SEMI="-Semi" # "-Semi" builds the sMDD; set it to "" for the standard MDD
 if [[ -n "$SEMI" ]]; then # There is no grouping sMDD

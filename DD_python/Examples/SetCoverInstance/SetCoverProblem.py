@@ -1,4 +1,5 @@
 from SourceCode.Problems.AbstractProblemClass import AbstractProblem
+from SourceCode.DDSemiBuilder.ConnectionIndex import pack_bitarrays, disjoint_positions
 from Exceptions.MyExceptions import InfeasibleInstance
 from bitarray import bitarray
 
@@ -178,6 +179,19 @@ class SetCoverProblem(AbstractProblem):
         if variable_value == 1:
             uncovered &= ~self.matrix_of_weight_transpose[variable_index]
         return not uncovered.any()
+
+    def get_connection_index(self, variable_index: int, backward_states: list['State']) -> 'np.ndarray':
+        '''
+        Rows left uncovered by each suffix, packed to compare the whole lower layer at once.
+        '''
+        return pack_bitarrays(backward_states)
+
+    def get_connection_candidates(self, connection_index: 'np.ndarray', forward_state: 'State', variable_index: int, variable_value: int) -> list[int]:
+        '''
+        The suffixes that cover every row left uncovered by the prefix and the connection variable.
+        '''
+        uncovered: bitarray = forward_state & ~self.matrix_of_weight_transpose[variable_index] if variable_value == 1 else forward_state
+        return disjoint_positions(connection_index, uncovered)
 
     def get_priority_for_discard_node(self, state: 'State') -> int:
         '''

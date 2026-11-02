@@ -1,5 +1,6 @@
 import os
 import sys
+import numpy as np
 from bitarray import bitarray
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -7,6 +8,7 @@ parent_dir = os.path.abspath(os.path.join(current_dir, os.pardir))
 sys.path.append(parent_dir)
 
 from SourceCode.Problems.AbstractProblemClass import AbstractProblem
+from SourceCode.DDSemiBuilder.ConnectionIndex import pack_bitarrays, disjoint_positions
 
 class IndependentSetProblem(AbstractProblem):
 
@@ -114,6 +116,34 @@ class IndependentSetProblem(AbstractProblem):
             if not (prefix_neighbors[vertex] & backward_state).any():
                 return False
         return True
+
+    def get_connection_index(self, variable_index: int, backward_states: list['State']) -> tuple['np.ndarray', 'np.ndarray']:
+        '''
+        For each suffix, the suffix vertices it cannot unblock (none of their prefix neighbors stays
+        selectable), packed per suffix, and whether the connection vertex is selectable from it.
+        '''
+        if self._connection_position != variable_index:
+            self._compute_connection_masks(variable_index)
+        packed_states: np.ndarray = pack_bitarrays(backward_states)
+        not_unblocked: np.ndarray = np.zeros((len(backward_states), len(self.node_neighbors)), dtype=bool)
+        for vertex in self._suffix_mask.search(1):
+            not_unblocked[disjoint_positions(packed_states, self._prefix_neighbors[vertex]), vertex] = True
+        bit_order: str = self._suffix_mask.endian()
+        connection_vertex_free = np.array([state[variable_index] for state in backward_states], dtype=bool)
+        return np.packbits(not_unblocked, axis=1, bitorder=bit_order), connection_vertex_free
+
+    def get_connection_candidates(self, connection_index: tuple['np.ndarray', 'np.ndarray'], forward_state: 'State', variable_index: int, variable_value: int) -> list[int]:
+        '''
+        The suffixes that unblock every suffix vertex blocked by the prefix; with value 1, only those
+        where the connection vertex is also selectable.
+        '''
+        if variable_value == 1 and not forward_state[variable_index]:
+            return []
+        not_unblocked, connection_vertex_free = connection_index
+        positions: list[int] = disjoint_positions(not_unblocked, ~forward_state & self._suffix_mask)
+        if variable_value == 1:
+            return [position for position in positions if connection_vertex_free[position]]
+        return positions
 
     def _compute_connection_masks(self, connection_position: int) -> None:
         '''
