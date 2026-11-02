@@ -52,6 +52,7 @@ class AbstractSemiDDBuilder(ABC):
         self.connect_layer: int = problem.connect_layer
         self._connection_weights: list[int] = None
         self._connection_objective: str = None
+        self._merge_before_connecting: bool = False
 
         initial_backward_state: 'State' = problem.get_initial_backward_state()
         self._scratch_state: list = [problem.get_state_copy(problem.initial_state)]
@@ -72,6 +73,15 @@ class AbstractSemiDDBuilder(ABC):
         '''
         self._connection_weights = weights
         self._connection_objective = objective
+
+    def set_merge_before_connecting(self) -> None:
+        '''
+        Before creating the connection arcs, merges the nodes of the last upper layer that connect
+        with the same lower nodes and then the nodes of the first lower layer reached by the same
+        upper nodes, as the reduction would do afterwards. Only the arcs between the kept nodes
+        are created. Ignored when the connection pruning is enabled.
+        '''
+        self._merge_before_connecting = True
 
     def _check_problem_supports_semi_dd(self, problem: AbstractProblem) -> None:
         '''
@@ -226,6 +236,10 @@ class AbstractSemiDDBuilder(ABC):
         all_positions: range = range(len(lower_layer))
         lower_scores: list[float] = None if self._connection_weights is None else self._lower_layer_scores()
 
+        if self._merge_before_connecting and lower_scores is None:
+            self._create_merged_connection_arcs(variable_index, domain, connection_index, all_positions)
+            return
+
         for upper_node in self._upper_graph.structure[-1]:
             upper_state = upper_node.state
             out_arcs: list[Arc] = upper_node.out_arcs
@@ -242,6 +256,75 @@ class AbstractSemiDDBuilder(ABC):
                         arc: Arc = Arc(upper_node, lower_node, variable_value)
                         out_arcs.append(arc)
                         lower_node.in_arcs.append(arc)
+
+    def _create_merged_connection_arcs(self, variable_index: int, domain: list[int], connection_index, all_positions: range) -> None:
+        '''
+        Creates the connection arcs after merging, in the last upper layer, the nodes compatible
+        with the same lower nodes for every value and, in the first lower layer, the nodes reached
+        by the same kept upper nodes for every value. The first node of each group is kept.
+
+        Parameters:
+        - variable_index: Index of the connection variable.
+        - domain: Values of the connection variable.
+        - connection_index: Index returned by get_connection_index, or None.
+        - all_positions: Every position of the first lower layer.
+        '''
+        connection_function = self._problem.connection_function
+        upper_layer: list[Node] = self._upper_graph.structure[-1]
+        lower_layer: list[Node] = self._lower_graph.structure[-1]
+
+        upper_group_by_signature: dict[tuple, int] = {}
+        kept_upper: list[Node] = []
+        group_positions: list[tuple] = []
+        for upper_node in upper_layer:
+            upper_state = upper_node.state
+            signature: tuple = tuple(
+                tuple(position for position in (all_positions if connection_index is None else
+                      self._problem.get_connection_candidates(connection_index, upper_state, variable_index, variable_value))
+                      if connection_function(upper_state, variable_index, variable_value, lower_layer[position].state))
+                for variable_value in domain)
+            group: int = upper_group_by_signature.get(signature)
+            if group is None:
+                upper_group_by_signature[signature] = len(kept_upper)
+                kept_upper.append(upper_node)
+                group_positions.append(signature)
+            else:
+                for arc in upper_node.in_arcs:
+                    arc.child_node = kept_upper[group]
+                    kept_upper[group].in_arcs.append(arc)
+                upper_node.in_arcs.clear()
+        upper_layer[:] = kept_upper
+
+        reached_by: list[list[list[int]]] = [[[] for _ in domain] for _ in lower_layer]
+        for group, signature in enumerate(group_positions):
+            for value_position, positions in enumerate(signature):
+                for position in positions:
+                    reached_by[position][value_position].append(group)
+
+        lower_group_by_signature: dict[tuple, int] = {}
+        kept_lower: list[Node] = []
+        lower_group: list[int] = []
+        for position, lower_node in enumerate(lower_layer):
+            signature = tuple(map(tuple, reached_by[position]))
+            group = lower_group_by_signature.get(signature)
+            if group is None:
+                group = lower_group_by_signature[signature] = len(kept_lower)
+                kept_lower.append(lower_node)
+            else:
+                for arc in lower_node.out_arcs:
+                    arc.parent_node = kept_lower[group]
+                    kept_lower[group].out_arcs.append(arc)
+                lower_node.out_arcs.clear()
+            lower_group.append(group)
+        lower_layer[:] = kept_lower
+
+        for group, signature in enumerate(group_positions):
+            for value_position, positions in enumerate(signature):
+                connected: set[int] = set()
+                for position in positions:
+                    if lower_group[position] not in connected:
+                        connected.add(lower_group[position])
+                        self._create_arc(kept_upper[group], kept_lower[lower_group[position]], domain[value_position])
 
     def _lower_layer_scores(self) -> list[float]:
         '''

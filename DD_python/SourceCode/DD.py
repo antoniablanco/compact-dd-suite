@@ -33,6 +33,7 @@ class DD():
         self._dd_kind: str = 'exact'
         self._connect_layer: int = None
         self._connection_pruning: tuple[list[int], str] = None
+        self._merge_before_connecting: bool = False
 
     def create_decision_diagram(self, verbose: bool = False) -> None:
         '''
@@ -127,10 +128,20 @@ class DD():
         '''
         self._connection_pruning = (weights, objective)
 
-    def _set_connection_pruning_on_builder(self) -> None:
-        ''' Passes the connection pruning, if enabled, to the semi DD builder. '''
+    def set_merge_before_connecting(self) -> None:
+        '''
+        For the next semi decision diagram, merges the nodes the reduction would merge around the
+        connection layer before creating its arcs, so fewer connection arcs are built. Only
+        meant to be used when the diagram is reduced afterwards.
+        '''
+        self._merge_before_connecting = True
+
+    def _configure_semi_builder(self) -> None:
+        ''' Passes the connection pruning and the merge before connecting, if enabled, to the semi DD builder. '''
         if self._connection_pruning is not None:
             self.semi_dd_builder.set_connection_pruning(*self._connection_pruning)
+        if self._merge_before_connecting:
+            self.semi_dd_builder.set_merge_before_connecting()
 
     def create_semi_decision_diagram(self, verbose: bool=False) -> None:
         '''
@@ -146,7 +157,7 @@ class DD():
         print("\nStarting the creation of the semi decision diagram...")
         start_time: float = time.time()
         self.semi_dd_builder: 'ExactSemiDDBuilder' = ExactSemiDDBuilder(self.problem)
-        self._set_connection_pruning_on_builder()
+        self._configure_semi_builder()
         self._graph_DD: 'Graph' = self.semi_dd_builder.get_decision_diagram(verbose)
         self._dd_kind = 'exact'
         self._connect_layer = self.semi_dd_builder.connect_layer
@@ -169,7 +180,7 @@ class DD():
         print("\nStarting the creation of the restricted semi decision diagram...")
         start_time: float = time.time()
         self.semi_dd_builder: 'RestrictedSemiDDBuilder' = RestrictedSemiDDBuilder(self.problem, max_width)
-        self._set_connection_pruning_on_builder()
+        self._configure_semi_builder()
         self._graph_DD: 'Graph' = self.semi_dd_builder.get_decision_diagram(verbose)
         self._dd_kind = 'restricted'
         self._connect_layer = self.semi_dd_builder.connect_layer
@@ -192,7 +203,7 @@ class DD():
         print("\nStarting the creation of the relaxed semi decision diagram...")
         start_time: float = time.time()
         self.semi_dd_builder: 'RelaxedPrioritySemiDDBuilder' = RelaxedPrioritySemiDDBuilder(self.problem, max_width)
-        self._set_connection_pruning_on_builder()
+        self._configure_semi_builder()
         self._graph_DD: 'Graph' = self.semi_dd_builder.get_decision_diagram(verbose)
         self._dd_kind = 'relaxed'
         self._connect_layer = self.semi_dd_builder.connect_layer

@@ -136,6 +136,8 @@ def create_and_solve_dd(problem_instance: 'AbstractProblem', objective_weights: 
     if gui_structure.semi_flag:
         if gui_structure.prune_connection:
             dd_instance.set_connection_pruning(sorted_obj, gui_structure.minmax)
+        if gui_structure.merge_before_connecting:
+            dd_instance.set_merge_before_connecting()
         create_semi_dd(dd_instance, gui_structure)
 
     elif gui_structure.dd_type == DDType.EXACT:
