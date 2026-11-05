@@ -51,6 +51,7 @@ class GuiStructure:
         connect_layer: int = None,
         prune_connection: bool = False,
         merge_before_connecting: bool = False,
+        pareto_frontier: bool = False,
     ):
         self.input_file_path: str = input_file_path
         self.output_file_path: str = output_file_path
@@ -66,6 +67,7 @@ class GuiStructure:
         self.connect_layer: int = connect_layer
         self.prune_connection: bool = prune_connection
         self.merge_before_connecting: bool = merge_before_connecting
+        self.pareto_frontier: bool = pareto_frontier
 
 
 class GuiCutsStructure:

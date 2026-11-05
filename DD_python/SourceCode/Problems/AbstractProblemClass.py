@@ -356,6 +356,23 @@ class AbstractProblem(ABC):
         '''
         raise NotImplementedError("The method get_connection_candidates has not been implemented yet")
 
+    def get_connection_frontier(self, variable_id: int, backward_states: list['State'], lower_scores: list[float]) -> list[int]:
+        '''
+        Positions of the first lower layer that the connection pruning (-PruneConnection) needs to
+        look at, best score first and ascending position on ties: for every prefix and value, the
+        first one accepted by connection_function must be the best compatible node with the lowest
+        position. Defaults to None: every candidate is checked.
+
+        Parameters:
+        - variable_id(int): The identifier of the connection variable.
+        - backward_states(list['State']): States of the first layer of the lower graph, in layer order. *READ IMPORTANT
+        - lower_scores(list[float]): Score of each node of that layer, higher is better (-inf if the terminal is unreachable).
+
+        Returns:
+        - list[int]: The positions in the order to check, or None to check every candidate.
+        '''
+        return None
+
     def get_backward_priority_for_discard_node(self, state: 'State') -> int:
         '''
         Defines the priority for discarding nodes of the lower graph of a restricted semi decision

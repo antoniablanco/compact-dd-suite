@@ -32,7 +32,7 @@ class DD():
         self._graph_DD: 'Graph' = None
         self._dd_kind: str = 'exact'
         self._connect_layer: int = None
-        self._connection_pruning: tuple[list[int], str] = None
+        self._connection_pruning: tuple[list[int], str, bool, bool] = None
         self._merge_before_connecting: bool = False
 
     def create_decision_diagram(self, verbose: bool = False) -> None:
@@ -116,17 +116,20 @@ class DD():
         self._dd_builder_time = round(end_time - start_time, 4)
         print(f"Relax grouping decision diagram creation completed.")
 
-    def set_connection_pruning(self, weights: list[int], objective: str) -> None:
+    def set_connection_pruning(self, weights: list[int], objective: str, best_arc: bool = True, pareto_frontier: bool = False) -> None:
         '''
-        Enables the pruning of the connection layer for the next semi decision diagram: only the
-        best arc per upper node and value is kept. The optimal value does not change, but the
-        diagram is only valid for these weights.
+        Enables the pruning of the connection layer for the next semi decision diagram: with
+        best_arc, only the best arc per upper node and value is kept; with pareto_frontier, only
+        the lower nodes of the problem's frontier (get_connection_frontier) are connected. The
+        optimal value does not change, but the diagram is only valid for these weights.
 
         Parameters:
         weights (list[int]): Objective weight of each variable, in diagram order.
         objective (str): "max" or "min".
+        best_arc (bool): Keep only the best arc per upper node and value.
+        pareto_frontier (bool): Only connect with the lower nodes of the frontier.
         '''
-        self._connection_pruning = (weights, objective)
+        self._connection_pruning = (weights, objective, best_arc, pareto_frontier)
 
     def set_merge_before_connecting(self) -> None:
         '''

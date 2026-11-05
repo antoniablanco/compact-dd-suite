@@ -134,8 +134,9 @@ def create_and_solve_dd(problem_instance: 'AbstractProblem', objective_weights: 
     headers: str = "File_name,Problem type,Variables number,DD Type,Max Width,Is Reduced,Objective Type,Optimization Value,Construction Time,Reduce Time,Solution Time,Number Node,Number Arcs,Actual Max Width,Sort,Semi,Connect Layer"
 
     if gui_structure.semi_flag:
-        if gui_structure.prune_connection:
-            dd_instance.set_connection_pruning(sorted_obj, gui_structure.minmax)
+        if gui_structure.prune_connection or gui_structure.pareto_frontier:
+            dd_instance.set_connection_pruning(sorted_obj, gui_structure.minmax,
+                                               gui_structure.prune_connection, gui_structure.pareto_frontier)
         if gui_structure.merge_before_connecting:
             dd_instance.set_merge_before_connecting()
         create_semi_dd(dd_instance, gui_structure)

@@ -52,6 +52,8 @@ class AbstractSemiDDBuilder(ABC):
         self.connect_layer: int = problem.connect_layer
         self._connection_weights: list[int] = None
         self._connection_objective: str = None
+        self._connection_best_arc: bool = True
+        self._connection_pareto_frontier: bool = False
         self._merge_before_connecting: bool = False
 
         initial_backward_state: 'State' = problem.get_initial_backward_state()
@@ -60,19 +62,26 @@ class AbstractSemiDDBuilder(ABC):
 
         self._initialize_graphs(problem.initial_state, initial_backward_state)
 
-    def set_connection_pruning(self, weights: list[int], objective: str) -> None:
+    def set_connection_pruning(self, weights: list[int], objective: str, best_arc: bool = True, pareto_frontier: bool = False) -> None:
         '''
-        Keeps, for every node of the last upper layer and every value of the connection variable,
-        only the arc to the compatible lower node with the best value to the terminal. The optimal
-        value of the diagram does not change, but it no longer holds every solution: it is only
-        valid for these weights (not for cuts) and for objectives that add one weight per arc.
+        Prunes the connection layer using the best value from each lower node to the terminal.
+        With best_arc, every node of the last upper layer keeps, for every value of the connection
+        variable, only the arc to the compatible lower node with the best value. With
+        pareto_frontier, only the lower nodes of the frontier given by get_connection_frontier are
+        connected (problems that do not implement it ignore it). The optimal value of the diagram
+        does not change, but it no longer holds every solution: it is only valid for these weights
+        (not for cuts) and for objectives that add one weight per arc.
 
         Parameters:
         - weights(list[int]): Objective weight of each variable, in diagram order.
         - objective(str): "max" or "min".
+        - best_arc(bool): Keep only the best arc per upper node and value.
+        - pareto_frontier(bool): Only connect with the lower nodes of the frontier.
         '''
         self._connection_weights = weights
         self._connection_objective = objective
+        self._connection_best_arc = best_arc
+        self._connection_pareto_frontier = pareto_frontier
 
     def set_merge_before_connecting(self) -> None:
         '''
@@ -240,6 +249,14 @@ class AbstractSemiDDBuilder(ABC):
             self._create_merged_connection_arcs(variable_index, domain, connection_index, all_positions)
             return
 
+        frontier: list[int] = None if lower_scores is None or not self._connection_pareto_frontier else \
+            self._problem.get_connection_frontier(variable_index, [node.state for node in lower_layer], lower_scores)
+        if frontier is not None:
+            self._create_frontier_connection_arcs(variable_index, domain, frontier, self._connection_best_arc)
+            return
+        if not self._connection_best_arc:
+            lower_scores = None
+
         for upper_node in self._upper_graph.structure[-1]:
             upper_state = upper_node.state
             out_arcs: list[Arc] = upper_node.out_arcs
@@ -372,6 +389,30 @@ class AbstractSemiDDBuilder(ABC):
 
         if best_position is not None:
             self._create_arc(upper_node, lower_layer[best_position], variable_value)
+
+    def _create_frontier_connection_arcs(self, variable_index: int, domain: list[int], frontier: list[int], best_arc: bool) -> None:
+        '''
+        Connection pruning over the frontier given by get_connection_frontier: for every node of
+        the last upper layer and every value, creates the arcs to the compatible frontier nodes,
+        or only to the first one (the best) with best_arc.
+
+        Parameters:
+        - variable_index: Index of the connection variable.
+        - domain: Values of the connection variable.
+        - frontier: Positions of the first lower layer, in the order to check.
+        - best_arc: Stop at the first compatible frontier node.
+        '''
+        connection_function = self._problem.connection_function
+        frontier_nodes: list[Node] = [self._lower_graph.structure[-1][position] for position in frontier]
+
+        for upper_node in self._upper_graph.structure[-1]:
+            upper_state = upper_node.state
+            for variable_value in domain:
+                for lower_node in frontier_nodes:
+                    if connection_function(upper_state, variable_index, variable_value, lower_node.state):
+                        self._create_arc(upper_node, lower_node, variable_value)
+                        if best_arc:
+                            break
 
     def _join_graphs(self) -> None:
         '''

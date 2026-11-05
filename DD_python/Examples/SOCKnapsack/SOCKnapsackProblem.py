@@ -176,6 +176,27 @@ class SOCKnapsackProblem(AbstractProblem):
         square: int = forward_state[1] + self.sqrt_weights_2[variable_index] * variable_value + backward_state[1]
         return linear + self.omega * math.sqrt(square) <= self.capacity
 
+    def get_connection_frontier(self, variable_id: int, backward_states: list['State'], lower_scores: list[float]) -> list[int]:
+        '''
+        Pareto frontier of the suffixes: a suffix is dropped when another one is not heavier in
+        both terms and has a better score (or the same score and a lower position), since it fits
+        wherever the dropped one fits. The connection pruning only checks the frontier.
+        '''
+        order: list[int] = sorted((position for position, score in enumerate(lower_scores) if score > float("-inf")),
+                                  key=lambda position: (backward_states[position][0], backward_states[position][1],
+                                                        -lower_scores[position], position))
+        frontier: list[int] = []
+        for position in order:
+            square: int = backward_states[position][1]
+            score: float = lower_scores[position]
+            if not any(backward_states[kept][1] <= square and
+                       (lower_scores[kept] > score or (lower_scores[kept] == score and kept < position))
+                       for kept in frontier):
+                frontier.append(position)
+
+        frontier.sort(key=lambda position: (-lower_scores[position], position))
+        return frontier
+
     def get_priority_for_discard_node(self, state: 'State') -> int:
         '''
         Get the priority for discard a node.
