@@ -4,12 +4,12 @@ import io
 import math
 import time
 from pathlib import Path
+from typing import Optional
 from unittest.mock import patch
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(current_dir)
 
-from SourceCode.DDSemiBuilder.ExactSemiDDBuilder.ExactSemiDDBuilder import ExactSemiDDBuilder
 from Examples.GuiStructure import ProblemClass
 from Examples.GuiHandler import to_string_problem_class, write_statistics
 from Examples.KnapsackInstance.KnapsackInstance import KnapsackStructure
@@ -22,6 +22,9 @@ from Examples.SOCKnapsack.SOCKnapsackInstance import SOCKnapsackInstance
 from Examples.SOCKnapsack.SOCKnapsackProblem import SOCKnapsackProblem
 from Examples.SequencingInstance.SequencingInstance import SequencingStructure
 from Examples.SequencingInstance.SequencingProblem import SequencingProblem
+
+# Widths and node counts of the lower layers that were not built (see compute_layer_widths).
+NOT_COMPUTED: str = "na"
 
 HEADERS: str = "File_name,Problem type,Variables number,Sort,K Default,K Opt,Nodes Default,Nodes Opt,Forward Widths,Backward Widths,Time"
 
@@ -51,56 +54,107 @@ def create_problem(problem_class: ProblemClass, file_path: str, sort: bool) -> '
     raise ValueError("A valid problem class was not specified.")
 
 
-def compute_layer_widths(problem: 'AbstractProblem') -> tuple[list[int], list[int]]:
+def expand_layer(problem: 'AbstractProblem', states: list, variable_id: int,
+                 transition_function, scratch_state: list) -> list:
     '''
-    Builds the exact upper graph down to layer N-1 and the exact lower graph up to layer 1, and
-    returns their widths. A layer does not depend on the connection layer (it only depends on the
-    previous layers of its own side), so these widths give the size of the sMDD for every k.
+    States of the next layer, as ExactSemiDDBuilder._create_new_layer would create them (same
+    transition and same state key), but without building nodes or arcs: only the widths are needed,
+    so only one layer is kept in memory.
+
+    Parameters:
+    - problem: Problem of the instance.
+    - states: States of the previous layer.
+    - variable_id: Position of the variable in the ordering.
+    - transition_function: Forward or backward transition function of the problem.
+    - scratch_state: One-element list the transition function writes the new state into.
+
+    Returns:
+    - list: Distinct states of the new layer.
+    '''
+    variable_index: int = problem.name_to_index[problem.ordered_variables[variable_id]]
+    domain: list[int] = problem.variables_domain[problem.ordered_variables[variable_id]]
+    get_state_as_string = problem.get_state_as_string
+    new_states: dict = {}
+
+    for previous_state in states:
+        for variable_value in domain:
+            if not transition_function(previous_state, variable_index, variable_value, scratch_state):
+                continue
+            state_as_string: str = get_state_as_string(scratch_state[0])
+            if state_as_string not in new_states:
+                new_states[state_as_string] = problem.get_state_copy(scratch_state[0])
+
+    return list(new_states.values())
+
+
+def compute_layer_widths(problem: 'AbstractProblem') -> tuple[list[int], list[Optional[int]]]:
+    '''
+    Widths of the exact upper layers 0..N-1 and of the exact lower layers N..1. A layer does not
+    depend on the connection layer (it only depends on the previous layers of its own side), so
+    these widths give the size of the sMDD for every k.
+    The lower side stops as soon as its layers k..N alone have more nodes than the best sMDD found
+    so far: every k' <= k has at least those nodes, so none of them can be k*. The layers below
+    the stop are left as None.
 
     Parameters:
     - problem: Problem of the instance.
 
     Returns:
-    - tuple[list[int], list[int]]: forward[j] = width of upper layer j (j = 0..N-1) and
-      backward[j] = width of lower layer j (j = 1..N; backward[0] is 0, it is never used).
+    - tuple[list[int], list[Optional[int]]]: forward[j] = width of upper layer j (j = 0..N-1) and
+      backward[j] = width of lower layer j (j = 1..N, None if not built; backward[0] is never used).
     '''
     number_of_variables: int = len(problem.ordered_variables)
 
-    upper_builder: ExactSemiDDBuilder = ExactSemiDDBuilder(problem)
-    upper_builder.connect_layer = number_of_variables
-    upper_builder._build_upper_graph(False)
-    forward: list[int] = [len(layer) for layer in upper_builder._upper_graph.structure]
-    upper_builder = None
+    states: list = [problem.initial_state]
+    scratch_state: list = [problem.get_state_copy(problem.initial_state)]
+    forward: list[int] = [1]
+    for variable_id in range(number_of_variables - 1):
+        states = expand_layer(problem, states, variable_id, problem.transition_function, scratch_state)
+        forward.append(len(states))
 
-    lower_builder: ExactSemiDDBuilder = ExactSemiDDBuilder(problem)
-    lower_builder.connect_layer = 1
-    lower_builder._build_lower_graph(False)
-    backward: list[int] = [0] + [len(layer) for layer in reversed(lower_builder._lower_graph.structure)]
+    initial_backward_state: 'State' = problem.get_initial_backward_state()
+    states = [initial_backward_state]
+    scratch_state = [problem.get_state_copy(initial_backward_state)]
+    backward: list[Optional[int]] = [None] * (number_of_variables + 1)
+    backward[number_of_variables] = 1
+    upper_nodes: int = sum(forward)
+    lower_nodes: int = 1
+    best_nodes: int = upper_nodes + lower_nodes  # k = N
+    for variable_id in range(number_of_variables - 1, 0, -1):
+        states = expand_layer(problem, states, variable_id, problem.backward_transition_function, scratch_state)
+        backward[variable_id] = len(states)
+        upper_nodes -= forward[variable_id]
+        lower_nodes += len(states)
+        best_nodes = min(best_nodes, upper_nodes + lower_nodes)
+        if lower_nodes > best_nodes:
+            break
 
     return forward, backward
 
 
-def nodes_per_connect_layer(forward: list[int], backward: list[int]) -> list[int]:
+def nodes_per_connect_layer(forward: list[int], backward: list[Optional[int]]) -> list[Optional[int]]:
     '''
     Number of nodes of the sMDD (before pruning and reduction) for every connection layer:
-    nodes(k) = sum(forward[0..k-1]) + sum(backward[k..N]).
+    nodes(k) = sum(forward[0..k-1]) + sum(backward[k..N]), or None if a lower layer >= k was not built.
 
     Parameters:
     - forward: Widths of the upper layers 0..N-1.
-    - backward: Widths of the lower layers 0..N (index 0 unused).
+    - backward: Widths of the lower layers 0..N (index 0 unused, None if not built).
 
     Returns:
-    - list[int]: nodes[k] for k = 0..N (index 0 unused).
+    - list[Optional[int]]: nodes[k] for k = 0..N (index 0 unused).
     '''
     number_of_variables: int = len(forward)
-    nodes: list[int] = [0] * (number_of_variables + 1)
-    upper_nodes: int = 0
-    lower_nodes: int = sum(backward[1:])
+    nodes: list[Optional[int]] = [None] * (number_of_variables + 1)
+    upper_nodes: int = sum(forward)
+    lower_nodes: int = 0
 
-    for k in range(1, number_of_variables + 1):
-        upper_nodes += forward[k - 1]
+    for k in range(number_of_variables, 0, -1):
+        if backward[k] is None:
+            break
+        lower_nodes += backward[k]
         nodes[k] = upper_nodes + lower_nodes
-        lower_nodes -= backward[k]
+        upper_nodes -= forward[k - 1]
 
     return nodes
 
@@ -114,12 +168,13 @@ def optimal_connect_layer(forward: list[int], backward: list[int], nodes: list[i
     Parameters:
     - forward: Widths of the upper layers 0..N-1.
     - backward: Widths of the lower layers 0..N (index 0 unused).
-    - nodes: Number of nodes for every connection layer (index 0 unused).
+    - nodes: Number of nodes for every connection layer (index 0 unused, None if not computed).
 
     Returns:
     - int: Optimal connection layer, in [1, N].
     '''
-    return min(range(1, len(nodes)), key=lambda k: (nodes[k], forward[k - 1] * backward[k], k))
+    return min((k for k in range(1, len(nodes)) if nodes[k] is not None),
+               key=lambda k: (nodes[k], forward[k - 1] * backward[k], k))
 
 
 def main(argv):
@@ -176,9 +231,10 @@ def main(argv):
 
     print(f"Instance: {Path(file_path).name}")
     print(f"Forward widths:  {forward}")
-    print(f"Backward widths: {backward[1:]}")
-    print(f"Nodes per k:     {nodes[1:]}")
-    print(f"K default: {k_default} ({nodes[k_default]} nodes) | K opt: {k_opt} ({nodes[k_opt]} nodes)")
+    print(f"Backward widths: {[NOT_COMPUTED if b is None else b for b in backward[1:]]}")
+    print(f"Nodes per k:     {[NOT_COMPUTED if n is None else n for n in nodes[1:]]}")
+    print(f"K default: {k_default} ({NOT_COMPUTED if nodes[k_default] is None else nodes[k_default]} nodes) | "
+          f"K opt: {k_opt} ({nodes[k_opt]} nodes)")
 
     if output_path != "":
         statistics: str = (
@@ -188,10 +244,10 @@ def main(argv):
             f'{sort_flag},'
             f'{k_default},'
             f'{k_opt},'
-            f'{nodes[k_default]},'
+            f'{NOT_COMPUTED if nodes[k_default] is None else nodes[k_default]},'
             f'{nodes[k_opt]},'
             f'{";".join(map(str, forward))},'
-            f'{";".join(map(str, backward[1:]))},'
+            f'{";".join(NOT_COMPUTED if b is None else str(b) for b in backward[1:])},'
             f'{elapsed_time}\n'
         )
         write_statistics(output_path, statistics, HEADERS)

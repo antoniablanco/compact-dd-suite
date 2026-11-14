@@ -54,6 +54,31 @@ class SequencingProblem(AbstractProblem):
         suffix_scheduled, _ = backward_state
         return job_id not in scheduled and job_id not in suffix_scheduled and scheduled.isdisjoint(suffix_scheduled)
 
+    def get_connection_index(self, variable_index: int, backward_states: list['State']) -> tuple[dict, set[int], range]:
+        '''
+        Positions of the lower layer grouped by suffix set, the sizes those sets have and every position.
+        '''
+        positions_by_suffix: dict[frozenset, list[int]] = {}
+        for position, (suffix_scheduled, _) in enumerate(backward_states):
+            positions_by_suffix.setdefault(suffix_scheduled, []).append(position)
+        suffix_sizes: set[int] = {len(suffix_scheduled) for suffix_scheduled in positions_by_suffix}
+        return positions_by_suffix, suffix_sizes, range(len(backward_states))
+
+    def get_connection_candidates(self, connection_index: tuple[dict, set[int], range], forward_state: 'State', variable_index: int, job_id: int) -> list[int]:
+        '''
+        A suffix connects only if it lies inside the jobs left free by the prefix and the connection
+        job. When every suffix has as many jobs as are left free (exact and restricted), that is the
+        single suffix equal to them; otherwise (merged states) every suffix is a candidate.
+        '''
+        scheduled, _ = forward_state
+        if job_id in scheduled:
+            return []
+        free_jobs: frozenset = frozenset(range(self.n_jobs)) - scheduled - {job_id}
+        positions_by_suffix, suffix_sizes, all_positions = connection_index
+        if suffix_sizes == {len(free_jobs)}:
+            return positions_by_suffix.get(free_jobs, [])
+        return all_positions
+
     def _scheduled_processing(self, scheduled: frozenset) -> int:
         '''
         Sum of processing times of the jobs already scheduled. Used as a

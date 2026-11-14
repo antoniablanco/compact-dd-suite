@@ -1,3 +1,4 @@
+from bisect import bisect_right
 from SourceCode.Problems.AbstractProblemClass import AbstractProblem
 
 
@@ -35,6 +36,21 @@ class KnapsackProblem(AbstractProblem):
         Prefix weight, connection item and suffix weight must fit together in the knapsack.
         '''
         return forward_state + self.weights[variable_index] * variable_value + backward_state <= self.capacity
+
+    def get_connection_index(self, variable_index: int, backward_states: list['State']) -> tuple[list[int], list[int]]:
+        '''
+        Suffix weights in ascending order, with the position of each one in the lower layer.
+        '''
+        positions: list[int] = sorted(range(len(backward_states)), key=lambda position: backward_states[position])
+        return [backward_states[position] for position in positions], positions
+
+    def get_connection_candidates(self, connection_index: tuple[list[int], list[int]], forward_state: 'State', variable_index: int, variable_value: int) -> list[int]:
+        '''
+        The suffixes that fit with the prefix and the connection item are a prefix of the sorted weights.
+        '''
+        sorted_weights, positions = connection_index
+        cut: int = bisect_right(sorted_weights, self.capacity - forward_state - self.weights[variable_index] * variable_value)
+        return sorted(positions[:cut])
 
     def get_priority_for_discard_node(self, state: 'State') -> int:
         '''

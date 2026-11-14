@@ -30,6 +30,9 @@ def main(argv):
         print("\t\t-NoSort = Disable variable sorting")
         print("\t\t-Semi = Build a semi decision diagram (sMDD); with -Exact, -Restricted or -RelaxPriority")
         print("\t\t-ConnectLayer_<k> = Connection layer of the sMDD, in [1, N] (default: ceil(N/2))")
+        print("\t\t-PruneConnection = sMDD: keep only the best connection arc per node and value (same optimum, only for these weights; not for Sequencing)")
+        print("\t\t-ParetoFrontier = sMDD: only connect with the non-dominated lower nodes (same optimum; only SOCKnapsack implements it, not for Sequencing)")
+        print("\t\t-MergeBeforeConnecting = sMDD with -Reduce: merge the nodes around the connection layer before creating its arcs (same reduced diagram)")
         print("\n\n")
         return 1
 
@@ -48,6 +51,9 @@ def main(argv):
     sort_flag: bool = True
     semi_flag: bool = False
     connect_layer: int = None
+    prune_connection: bool = False
+    pareto_frontier: bool = False
+    merge_before_connecting: bool = False
 
     for arg in argv[2:]:
         if arg == "-SetCover":
@@ -89,6 +95,12 @@ def main(argv):
             semi_flag = True
         elif arg.startswith("-ConnectLayer_"):
             connect_layer = int(arg[14:])
+        elif arg == "-PruneConnection":
+            prune_connection = True
+        elif arg == "-ParetoFrontier":
+            pareto_frontier = True
+        elif arg == "-MergeBeforeConnecting":
+            merge_before_connecting = True
 
     if problem_class == ProblemClass.NONE:
         print("Error: A valid problem class was not specified.")
@@ -105,6 +117,16 @@ def main(argv):
         sys.exit(1)
     if connect_layer is not None and not semi_flag:
         print("Error: -ConnectLayer_<k> requires -Semi.")
+        sys.exit(1)
+    # The pruning needs an objective that adds one weight per arc: Sequencing's cost depends on the path.
+    if prune_connection and (not semi_flag or problem_class == ProblemClass.SEQUENCING):
+        print("Error: -PruneConnection requires -Semi and is not available for -Sequencing.")
+        sys.exit(1)
+    if pareto_frontier and (not semi_flag or problem_class == ProblemClass.SEQUENCING):
+        print("Error: -ParetoFrontier requires -Semi and is not available for -Sequencing.")
+        sys.exit(1)
+    if merge_before_connecting and not (semi_flag and reduce_flag):
+        print("Error: -MergeBeforeConnecting requires -Semi and -Reduce.")
         sys.exit(1)
 
     file_path: str = ""
@@ -135,6 +157,9 @@ def main(argv):
     print(f"Semi: {'Yes' if semi_flag else 'No'}")
     if semi_flag:
         print(f"Connect Layer: {connect_layer if connect_layer is not None else 'default (ceil(N/2))'}")
+        print(f"Prune Connection: {'Yes' if prune_connection else 'No'}")
+        print(f"Pareto Frontier: {'Yes' if pareto_frontier else 'No'}")
+        print(f"Merge Before Connecting: {'Yes' if merge_before_connecting else 'No'}")
 
     gui_structure = GuiStructure(
         input_file_path=str(file_path),
@@ -149,6 +174,9 @@ def main(argv):
         sort=sort_flag,
         semi_flag=semi_flag,
         connect_layer=connect_layer,
+        prune_connection=prune_connection,
+        merge_before_connecting=merge_before_connecting,
+        pareto_frontier=pareto_frontier,
     )
 
     run_dd_code(gui_structure)

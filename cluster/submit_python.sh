@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # Job name
-#SBATCH --job-name=dd-batch-python
-#SBATCH --output=/home1/%u/compact-dd-suite-results/salidas/python/salida_semi_python.txt
+#SBATCH --job-name=dd-semi-connection-index-python
+#SBATCH --output=/home1/%u/compact-dd-suite-results/salidas/python/salida_semi_connection_index_python.txt
 #SBATCH --partition=gpus
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=5
@@ -27,13 +27,14 @@ pwd
 sleep 1
 
 
-LOG_TIMEOUT="$HOME/compact-dd-suite-results/timeout_log/python/timeout_log_python_$(date '+%d_%m_%Y_%H-%M-%S').txt"
+RUN_TAG="_connection_index" # Connection index (get_connection_index) in every problem but SOCKnapsack
+LOG_TIMEOUT="$HOME/compact-dd-suite-results/timeout_log/python/timeout_log_python${RUN_TAG}_$(date '+%d_%m_%Y_%H-%M-%S').txt"
 MAX_PARALLEL=5  # Maximum number of parallel processes, must equal --cpus-per-task
 MAX_TIMEOUT=5m # Maximum wait time per process (s: seconds, m: minutes, h: hours)
 pids=()
 metadata=()
 
-PROBLEMS=("Knapsack" "IndependentSet" "SetCover" "SOCKnapsack" "Sequencing")
+PROBLEMS=("Knapsack" "IndependentSet" "SetCover" "Sequencing") # SOCKnapsack has no connection index
 TYPES=("Exact" "Restricted" "RelaxPriority" "RelaxGrouping")
 SEMI="-Semi" # "-Semi" builds the sMDD; set it to "" for the standard MDD
 if [[ -n "$SEMI" ]]; then # There is no grouping sMDD
@@ -43,7 +44,7 @@ if [[ -n "$SEMI" ]]; then # There is no grouping sMDD
 fi
 MODES=("Reduce" "NoReduce")
 WIDTHS=(500 1000 2000 5000 10000 20000)
-OUTPUT_FILE="$HOME/compact-dd-suite-results/results/python/results_python_semi${SEMI:+_semi}_$(date '+%d_%m_%Y_%H-%M-%S').csv"
+OUTPUT_FILE="$HOME/compact-dd-suite-results/results/python/results_python_semi${SEMI:+_semi}${RUN_TAG}_$(date '+%d_%m_%Y_%H-%M-%S').csv"
 
 
 for problem in "${PROBLEMS[@]}"; do
@@ -55,7 +56,9 @@ for problem in "${PROBLEMS[@]}"; do
             objective="Max"
             ;;
     esac
-    mapfile -t FILES < <(ls $HOME/compact-dd-suite/DataInstances/$problem/Standard/*.txt | sort -V) # Load the files and sort them in order natural
+    INSTANCE_DIRS=("$HOME/compact-dd-suite/DataInstances/$problem/Standard")
+    [[ "$problem" == "Sequencing" ]] && INSTANCE_DIRS+=("$HOME/compact-dd-suite/DataInstances/$problem/Custom")
+    mapfile -t FILES < <(for dir in "${INSTANCE_DIRS[@]}"; do ls "$dir"/*.txt; done | sort -V) # Load the files and sort them in order natural
     for file_path in "${FILES[@]}"; do
         file="${file_path#../}"
 

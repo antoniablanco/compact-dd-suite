@@ -2,6 +2,7 @@ import glob
 import os
 import re
 import shutil
+import sys
 from datetime import datetime
 
 import numpy as np
@@ -11,13 +12,31 @@ import matplotlib.backends.backend_pdf as pdf_backend
 from matplotlib.font_manager import FontProperties
 
 
+# '--kopt' compares against the run with the offline-optimal connect layer k*
+# (results_python_semi_kopt_*); by default, the k = ceil(N/2) run.
+# '--test <name>' compares against a test run (results_python_semi_semi_<name>_*,
+# e.g. connection_index, prune_connection) and puts <name> in the output file.
+KOPT = "--kopt" in sys.argv[1:]
+TEST = sys.argv[sys.argv.index("--test") + 1] if "--test" in sys.argv[1:] else None
+if KOPT:
+    OUT_PREFIX, SEMI_GLOB = "smdd_vs_mdd_kopt", "results_python_semi_kopt_*.csv"
+elif TEST:
+    OUT_PREFIX, SEMI_GLOB = f"smdd_vs_mdd_{TEST}", f"results_python_semi_semi_{TEST}_*.csv"
+else:
+    OUT_PREFIX, SEMI_GLOB = "smdd_vs_mdd", "results_python_semi_semi_*.csv"
+# Test runs share the 'results_python_semi_semi_' prefix: only names with the date
+# right after it are the general run.
+SEMI_NAME = re.compile(rf"^results_python_semi_semi_{re.escape(TEST)}_\d{{2}}_" if TEST
+                       else r"^results_python_semi_(semi|kopt)_\d{2}_")
+
+
 def archive_existing(folder):
     """Create 'folder' and its 'deprecated/' and move the existing outputs there
     before generating new ones, so old versions do not pile up in the root. Only
-    this script's own outputs are moved: the frozen pre-hooks table is kept."""
+    this variant's own outputs are moved: the frozen pre-hooks table is kept."""
     deprecated = os.path.join(folder, "deprecated")
     os.makedirs(deprecated, exist_ok=True)
-    own = re.compile(r"^smdd_vs_mdd_\d{8}_\d{6}\.pdf$")
+    own = re.compile(rf"^{OUT_PREFIX}_\d{{8}}_\d{{6}}\.pdf$")
     for path in glob.glob(os.path.join(folder, "*")):
         if os.path.isfile(path) and own.match(os.path.basename(path)):
             shutil.move(path, os.path.join(deprecated, os.path.basename(path)))
@@ -27,7 +46,7 @@ BASE      = os.path.dirname(os.path.abspath(__file__))
 MDD_DIR   = os.path.join(BASE, "data", "python", "original")
 SEMI_DIR  = os.path.join(BASE, "data", "python", "semi")
 OUT_DIR   = os.path.join(BASE, "tables", "smdd_vs_mdd_table")
-OUT_PATH  = os.path.join(OUT_DIR, f"smdd_vs_mdd_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf")
+OUT_PATH  = os.path.join(OUT_DIR, f"{OUT_PREFIX}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf")
 
 archive_existing(OUT_DIR)
 
@@ -76,9 +95,10 @@ REL_TOL    = 1e-6
 
 
 # ── Loading ────────────────────────────────────────────────────────────────────
-def load_latest(folder, pattern, exclude=()):
+def load_latest(folder, pattern, exclude=(), name_re=None):
     files = [f for f in glob.glob(os.path.join(folder, pattern))
-             if not any(e in os.path.basename(f) for e in exclude)]
+             if not any(e in os.path.basename(f) for e in exclude)
+             and (name_re is None or name_re.match(os.path.basename(f)))]
     if not files:
         raise FileNotFoundError(f"Could not find '{pattern}' in {folder}")
     latest = max(files, key=_file_datetime)
@@ -91,7 +111,7 @@ df_mdd, mdd_src = load_latest(MDD_DIR, "results_python_*.csv", exclude=("groupin
 # Only the newest general run: the dedicated exact files (results_semi_exact_*)
 # are not merged in, so every row comes from one code version.
 print("Loading sMDD:")
-df_semi, semi_src = load_latest(SEMI_DIR, "results_python_semi_*.csv")
+df_semi, semi_src = load_latest(SEMI_DIR, SEMI_GLOB, name_re=SEMI_NAME)
 
 df_mdd  = df_mdd[df_mdd["Sort"]].drop_duplicates(subset=KEY, keep="last")
 df_semi = df_semi[df_semi["Sort"]].drop_duplicates(subset=KEY, keep="last")
@@ -263,7 +283,7 @@ for x in (xs[4], xs[7], xs[10], xs[13], xs[16], xs[19]):
     ax.plot([x, x], [0, total_h], color="black", lw=0.6)
 
 ax.set_title(
-    "sMDD vs MDD — DD Python, paired rows (same instance, DD type, width and reduction)"
+    f"sMDD ({'k = k*' if KOPT else 'k = ceil(N/2)'}{f', test: {TEST}' if TEST else ''}) vs MDD — DD Python, paired rows (same instance, DD type, width and reduction)"
     "\n"
     f"MDD: {mdd_src}   |   sMDD: {semi_src}\n"
     "Columns are means over the paired rows; 'ratio' is the geometric mean of sMDD/MDD per row. "
